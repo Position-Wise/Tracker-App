@@ -1,0 +1,120 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  /* Core */
+  --background: oklch(0.98 0.01 250); /* #F5F7FA */
+  --foreground: oklch(0.28 0.03 255); /* Slate Navy tone */
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.28 0.03 255);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.28 0.03 255);
+
+  /* Brand — exact navy #2A4064 */
+  --brand-navy: #2a4064;
+  --brand-navy-muted: #3d5a82;
+  --brand-navy-deep: #1e2f4a;
+  --brand-navy-panel: #152238;
+  --brand-navy-black: #0a0e14;
+
+  --primary: var(--brand-navy);
+  --primary-foreground: #ffffff;
+
+  --secondary: oklch(0.92 0.02 250); /* #E3E8EF */
+  --secondary-foreground: var(--brand-navy);
+
+  --accent: oklch(0.45 0.09 165); /* #0D5F46 */
+  --accent-foreground: oklch(0.98 0 0);
+
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: var(--brand-navy);
+
+  --destructive: oklch(0.6 0.22 27);
+}
+
+/* Dark mode: black + navy (#2A4064 family) */
+.dark {
+  --background: var(--brand-navy-black);
+  --foreground: #f5f7fa;
+
+  --card: var(--brand-navy-panel);
+  --card-foreground: #f5f7fa;
+
+  --popover: var(--brand-navy-panel);
+  --popover-foreground: #f5f7fa;
+
+  --primary: var(--brand-navy);
+  --primary-foreground: #ffffff;
+
+  --secondary: var(--brand-navy-deep);
+  --secondary-foreground: #f5f7fa;
+
+  --accent: var(--brand-navy);
+  --accent-foreground: #ffffff;
+
+  --muted: var(--brand-navy-deep);
+  --muted-foreground: #a8b4c7;
+
+  --border: color-mix(in srgb, var(--brand-navy) 40%, transparent);
+  --input: color-mix(in srgb, var(--brand-navy) 55%, transparent);
+  --ring: var(--brand-navy-muted);
+
+  --destructive: oklch(0.7 0.19 22);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Track layout panels — keep existing brand colors */
+.track-panel {
+  @apply rounded-3xl border border-border bg-card;
+}
+
+.track-panel-elevated {
+  @apply rounded-2xl border border-border bg-secondary/60;
+}
+
+/* Base */
+@layer base {
+  * {
+    @apply border-border outline-ring/40;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
