@@ -1,7 +1,10 @@
 "use client"
 
+import { Suspense } from "react"
 import { TrackLedgerProvider } from "@/components/track/track-ledger-provider"
+import { TrackQuickAddHost } from "@/components/track/track-quick-add-host"
 import type { CreditLimitPool, MoneySource } from "@/lib/track/money-sources"
+import type { ExpenseCategory } from "@/lib/track/types"
 
 export function TrackAppClientShell({
   currency,
@@ -9,6 +12,7 @@ export function TrackAppClientShell({
   creditLimitPools = [],
   balances,
   expenseSourceMap,
+  categories = [],
   children,
 }: {
   currency: string
@@ -16,6 +20,7 @@ export function TrackAppClientShell({
   creditLimitPools?: CreditLimitPool[]
   balances: Record<string, number>
   expenseSourceMap?: Record<string, string | null>
+  categories?: ExpenseCategory[]
   children: React.ReactNode
 }) {
   return (
@@ -27,6 +32,9 @@ export function TrackAppClientShell({
       expenseSourceMap={expenseSourceMap}
     >
       {children}
+      <Suspense fallback={null}>
+        <TrackQuickAddHost categories={categories} />
+      </Suspense>
     </TrackLedgerProvider>
   )
 }

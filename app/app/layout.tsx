@@ -7,6 +7,7 @@ import {
   computeSourceBalances,
   ensureDefaultMoneySource,
   ensureTrackProfile,
+  listCategories,
   listCreditLimitPools,
   listMoneySources,
 } from "@/lib/track/queries"
@@ -37,8 +38,11 @@ export default async function TrackAppLayout({ children }: TrackAppLayoutProps) 
     user.id,
     profile.preferred_currency
   )
-  const sources = await listMoneySources(supabase, user.id)
-  const creditLimitPools = await listCreditLimitPools(supabase, user.id)
+  const [sources, creditLimitPools, categories] = await Promise.all([
+    listMoneySources(supabase, user.id),
+    listCreditLimitPools(supabase, user.id),
+    listCategories(supabase, user.id),
+  ])
   const balances = await computeSourceBalances(supabase, user.id, sources)
 
   return (
@@ -47,6 +51,7 @@ export default async function TrackAppLayout({ children }: TrackAppLayoutProps) 
       sources={sources}
       creditLimitPools={creditLimitPools}
       balances={balances}
+      categories={categories}
     >
       <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-16 sm:px-6 md:pb-12 md:pt-8">
         {children}
