@@ -16,7 +16,8 @@ import {
   ExpenseFormDialog,
 } from "@/components/track/expense-form-dialog"
 import { Button } from "@/components/ui/button"
-import { formatMoney, toDateInputValue } from "@/lib/track/month"
+import { useTrackMoney } from "@/components/track/track-privacy-provider"
+import { toDateInputValue } from "@/lib/track/month"
 import type { TrackActivityItem } from "@/lib/track/activity-types"
 import type { ExpenseCategory, ExpenseWithCategory } from "@/lib/track/types"
 import { cn } from "@/lib/utils"
@@ -272,6 +273,7 @@ function ExpenseListRow({
   active: boolean
   onSelect: () => void
 }) {
+  const { formatMoney } = useTrackMoney()
   return (
     <li>
       <button
@@ -326,6 +328,7 @@ function ActivityListRow({
   active: boolean
   onSelect: () => void
 }) {
+  const { formatMoney } = useTrackMoney()
   const prefix =
     item.kind === "income" ? "+" : item.kind === "transfer" ? "" : "−"
 
@@ -468,6 +471,7 @@ function ExpenseDetail({
   currency: string
   onEdit: () => void
 }) {
+  const { formatMoney } = useTrackMoney()
   const { getExpenseSourceId, sourceName } = useTrackLedger()
   const money = formatMoney(expense.amount, expense.currency || currency)
   const categoryName = expense.category?.name ?? "Uncategorized"
@@ -504,6 +508,7 @@ function ExpenseDetail({
 }
 
 function GenericActivityDetail({ item }: { item: TrackActivityItem }) {
+  const { formatMoney } = useTrackMoney()
   const money = formatMoney(item.amount, item.currency)
   const kind =
     item.kind === "income" ? "Income" : item.kind === "transfer" ? "Transfer" : "Expense"

@@ -1,5 +1,7 @@
 /** Month helpers for Track expense filtering (local calendar months). */
 
+import type { DailySpendPoint } from "@/lib/track/types"
+
 export function toMonthKey(date: Date = new Date()): string {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, "0")
@@ -34,6 +36,17 @@ export function formatMonthLabel(monthKey: string): string {
   return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" })
 }
 
+/** Compact label like "AUG 26". */
+export function formatMonthShortLabel(monthKey: string): string {
+  const [yRaw, mRaw] = monthKey.split("-")
+  const d = new Date(Number(yRaw), Number(mRaw) - 1, 1)
+  const month = d
+    .toLocaleDateString("en-US", { month: "short" })
+    .toUpperCase()
+  const year = String(d.getFullYear()).slice(-2)
+  return `${month} ${year}`
+}
+
 export function formatMoney(amount: number, currency = "INR"): string {
   try {
     return new Intl.NumberFormat("en-IN", {
@@ -53,6 +66,49 @@ export function slugifyCategoryName(name: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 48) || "category"
+}
+
+/** Daily + cumulative spend series for a YYYY-MM month (local calendar). */
+export function buildDailySpendSeries(
+  monthKey: string,
+  expenses: { amount: number; spent_at: string }[]
+): DailySpendPoint[] {
+  const [yRaw, mRaw] = monthKey.split("-")
+  const year = Number(yRaw)
+  const month = Number(mRaw)
+  if (!year || !month) return []
+
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const now = new Date()
+  const isCurrentMonth =
+    now.getFullYear() === year && now.getMonth() + 1 === month
+  const endDay = isCurrentMonth
+    ? Math.min(now.getDate(), daysInMonth)
+    : daysInMonth
+
+  const byDay = new Map<number, number>()
+  for (const expense of expenses) {
+    const d = new Date(expense.spent_at)
+    if (Number.isNaN(d.getTime())) continue
+    if (d.getFullYear() !== year || d.getMonth() + 1 !== month) continue
+    const day = d.getDate()
+    byDay.set(day, (byDay.get(day) ?? 0) + expense.amount)
+  }
+
+  let cumulative = 0
+  const points: DailySpendPoint[] = []
+  for (let day = 1; day <= endDay; day++) {
+    const total = byDay.get(day) ?? 0
+    cumulative += total
+    points.push({
+      date: `${monthKey}-${String(day).padStart(2, "0")}`,
+      day,
+      label: String(day),
+      total,
+      cumulative,
+    })
+  }
+  return points
 }
 
 /** Date input value (YYYY-MM-DD) from an ISO timestamp, in local time. */

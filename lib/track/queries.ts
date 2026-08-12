@@ -1,6 +1,7 @@
 import type { SupabaseServerClient } from "@/lib/supabase/server"
 import type { TrackActivityItem } from "@/lib/track/activity-types"
-import { monthRangeBounds } from "@/lib/track/month"
+import { buildDailySpendSeries, monthRangeBounds } from "@/lib/track/month"
+import { insightFetchBounds } from "@/lib/track/insight-series"
 import type {
   CreditLimitPool,
   MoneySource,
@@ -10,6 +11,7 @@ import type {
   ExpenseCategory,
   ExpenseWithCategory,
   IncomeRow,
+  InsightLedgerPoint,
   MoneySourceRow,
   MonthSummary,
   TrackProfile,
@@ -450,5 +452,52 @@ export async function getMonthSummary(
     total,
     byCategory,
     recent: expenses.slice(0, 8),
+    dailySpend: buildDailySpendSeries(monthKey, expenses),
   }
+}
+
+/** Lightweight expense + income amounts for insight charts (year around monthKey). */
+export async function listInsightLedger(
+  supabase: SupabaseServerClient,
+  userId: string,
+  monthKey: string
+): Promise<InsightLedgerPoint[]> {
+  const { startIso, endIso } = insightFetchBounds(monthKey)
+
+  const [expensesRes, incomesRes] = await Promise.all([
+    supabase
+      .from("expenses")
+      .select("amount,spent_at")
+      .eq("user_id", userId)
+      .gte("spent_at", startIso)
+      .lt("spent_at", endIso),
+    supabase
+      .from("incomes")
+      .select("amount,occurred_at")
+      .eq("user_id", userId)
+      .gte("occurred_at", startIso)
+      .lt("occurred_at", endIso),
+  ])
+
+  if (expensesRes.error) throw new Error(expensesRes.error.message)
+  if (incomesRes.error) throw new Error(incomesRes.error.message)
+
+  const ledger: InsightLedgerPoint[] = []
+
+  for (const row of expensesRes.data ?? []) {
+    ledger.push({
+      kind: "expense",
+      amount: num(row.amount as number | string),
+      at: row.spent_at as string,
+    })
+  }
+  for (const row of incomesRes.data ?? []) {
+    ledger.push({
+      kind: "income",
+      amount: num(row.amount as number | string),
+      at: row.occurred_at as string,
+    })
+  }
+
+  return ledger
 }

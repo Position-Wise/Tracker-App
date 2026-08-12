@@ -3,6 +3,8 @@
 import { useMemo, useState, useTransition } from "react"
 import {
   CreditCard,
+  Eye,
+  EyeOff,
   Landmark,
   Pencil,
   Plus,
@@ -12,9 +14,11 @@ import {
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { deleteMoneySource } from "@/app/app/actions"
+import { AccountsActivityPulse } from "@/components/track/accounts-activity-pulse"
 import { AccountsManager } from "@/components/track/accounts-manager"
 import { MoneySourceFormDialog } from "@/components/track/money-source-form-dialog"
 import { useTrackLedger } from "@/components/track/track-ledger-provider"
+import { useTrackMoney } from "@/components/track/track-privacy-provider"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,7 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { formatMoney } from "@/lib/track/month"
 import {
   MONEY_SOURCE_KIND_LABEL,
   sourceSubtitle,
@@ -31,6 +34,7 @@ import {
   type MoneySource,
   type MoneySourceKind,
 } from "@/lib/track/money-sources"
+import type { InsightLedgerPoint } from "@/lib/track/types"
 import { cn } from "@/lib/utils"
 
 const KIND_ORDER: MoneySourceKind[] = ["bank", "credit_card", "cash"]
@@ -46,7 +50,13 @@ function accountNumberLabel(source: MoneySource) {
   return null
 }
 
-export function AccountsOverviewPanel() {
+export function AccountsOverviewPanel({
+  monthKey,
+  insightLedger = [],
+}: {
+  monthKey: string
+  insightLedger?: InsightLedgerPoint[]
+}) {
   const {
     sources,
     totalLiquidBalance,
@@ -56,6 +66,7 @@ export function AccountsOverviewPanel() {
     creditLimitPools,
     cardCreditLimit,
   } = useTrackLedger()
+  const { formatMoney, hidden, toggleHidden } = useTrackMoney()
 
   const [addOpen, setAddOpen] = useState(false)
   const [manageOpen, setManageOpen] = useState(false)
@@ -88,6 +99,18 @@ export function AccountsOverviewPanel() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            className="rounded-full"
+            onClick={toggleHidden}
+            aria-label={hidden ? "Show amounts" : "Hide amounts"}
+            aria-pressed={hidden}
+            title={hidden ? "Show amounts" : "Hide amounts"}
+          >
+            {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -131,6 +154,14 @@ export function AccountsOverviewPanel() {
             />
           ))
         )}
+
+        {ready ? (
+          <AccountsActivityPulse
+            monthKey={monthKey}
+            currency={currency}
+            ledger={insightLedger}
+          />
+        ) : null}
       </div>
 
       <MoneySourceFormDialog open={addOpen} onOpenChange={setAddOpen} />
@@ -226,6 +257,7 @@ function AccountKindStack({
   allSources: MoneySource[]
   onSelect: (source: MoneySource) => void
 }) {
+  const { formatMoney } = useTrackMoney()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   if (kind === "cash" || kind === "bank") {
@@ -420,6 +452,7 @@ function HorizontalAccountsRow({
   /** Bank: balance appears on hover. Cash: always visible. */
   revealBalanceOnHover?: boolean
 }) {
+  const { formatMoney } = useTrackMoney()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const isBank = kind === "bank"
 
@@ -552,6 +585,7 @@ function AccountDetail({
   onEdit: () => void
   onDeleted: () => void
 }) {
+  const { formatMoney } = useTrackMoney()
   const router = useRouter()
   const [pending, startTransition] = useTransition()
 
