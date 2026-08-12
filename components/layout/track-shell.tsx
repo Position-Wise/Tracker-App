@@ -2,16 +2,20 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
-  LayoutDashboard,
-  Receipt,
-  Tags,
-  User,
+  ArrowLeftRight,
   LogIn,
   Moon,
+  Plus,
+  Receipt,
   Sun,
+  Tags,
+  TrendingDown,
+  TrendingUp,
+  User,
   Wallet,
+  X,
 } from "lucide-react"
 import { useAuth, AuthProvider } from "@/components/providers/auth-provider"
 import { useTheme } from "@/components/providers/theme-provider"
@@ -24,20 +28,48 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { requestQuickAdd, type QuickAddKind } from "@/lib/track/quick-add"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
 const NAV_EXCLUDED_PREFIXES = ["/sign-in", "/sign-up"] as const
 
-const trackNavItems = [
-  { name: "Home", href: "/app", icon: LayoutDashboard },
+const trackNavLeft = [
   { name: "Expenses", href: "/app/expenses", icon: Receipt },
   { name: "Accounts", href: "/app/accounts", icon: Wallet },
+] as const
+
+const trackNavRight = [
   { name: "Categories", href: "/app/categories", icon: Tags },
 ] as const
 
+const quickAddOptions: {
+  kind: QuickAddKind
+  label: string
+  description: string
+  icon: typeof TrendingDown
+}[] = [
+  {
+    kind: "income",
+    label: "Income",
+    description: "Record money in",
+    icon: TrendingUp,
+  },
+  {
+    kind: "expense",
+    label: "Expense",
+    description: "Log a spend",
+    icon: TrendingDown,
+  },
+  {
+    kind: "transfer",
+    label: "Transfer",
+    description: "Move between accounts",
+    icon: ArrowLeftRight,
+  },
+]
+
 function isActivePath(pathname: string, href: string) {
-  if (href === "/app") return pathname === "/app"
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
@@ -132,9 +164,159 @@ function TrackProfileMenu() {
   )
 }
 
+function MobileNavLink({
+  href,
+  name,
+  icon: Icon,
+  active,
+}: {
+  href: string
+  name: string
+  icon: typeof Receipt
+  active: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-1 pb-1.5 pt-3 text-[11px]"
+    >
+      <Icon
+        className={cn(
+          "h-5 w-5",
+          active ? "text-primary" : "text-muted-foreground"
+        )}
+      />
+      <span
+        className={cn(
+          "mt-1 truncate",
+          active ? "font-medium text-primary" : "text-muted-foreground"
+        )}
+      >
+        {name}
+      </span>
+    </Link>
+  )
+}
+
+function DockedNavBar({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative mx-auto h-22 w-full max-w-md">
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full drop-shadow-md"
+        viewBox="0 0 360 72"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          d="M24 16 H128 C138 16 145 20 150 28 C158 44 169 52 180 52 C191 52 202 44 210 28 C215 20 222 16 232 16 H336 C348 16 356 24 356 36 V52 C356 62 348 70 336 70 H24 C12 70 4 62 4 52 V36 C4 24 12 16 24 16 Z"
+          className="fill-card stroke-border/70"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <div className="relative z-10 flex h-full items-end px-2 pb-2.5 pt-7">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function TrackMobileQuickAdd() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null
+      if (menuRef.current && target && !menuRef.current.contains(target)) {
+        setOpen(false)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false)
+    }
+
+    document.addEventListener("mousedown", onPointerDown)
+    document.addEventListener("touchstart", onPointerDown)
+    document.addEventListener("keydown", onKeyDown)
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown)
+      document.removeEventListener("touchstart", onPointerDown)
+      document.removeEventListener("keydown", onKeyDown)
+    }
+  }, [open])
+
+  function handlePick(kind: QuickAddKind) {
+    setOpen(false)
+    if (pathname.startsWith("/app")) {
+      requestQuickAdd(kind)
+      return
+    }
+    router.push(`/app?add=${kind}`)
+  }
+
+  return (
+    <div
+      ref={menuRef}
+      className="relative flex h-14 w-18 shrink-0 justify-center"
+    >
+      {open ? (
+        <div className="absolute bottom-[calc(100%+22px)] left-1/2 z-20 w-55 -translate-x-1/2 rounded-2xl border border-border/70 bg-card p-2 shadow-lg">
+          <div className="space-y-1">
+            {quickAddOptions.map((option) => {
+              const Icon = option.icon
+              return (
+                <button
+                  key={option.kind}
+                  type="button"
+                  onClick={() => handlePick(option.kind)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-secondary"
+                >
+                  <span className="flex size-9 items-center justify-center rounded-full bg-secondary text-foreground">
+                    <Icon className="size-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">
+                      {option.label}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {option.description}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        aria-label={open ? "Close quick add" : "Add transaction"}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="absolute left-1/2 top-0 flex size-14 -translate-x-1/2 -translate-y-[42%] items-center justify-center rounded-full bg-[#2a4064] text-white shadow-lg transition-transform active:scale-95"
+      >
+        {open ? (
+          <X className="size-6" strokeWidth={2.5} />
+        ) : (
+          <Plus className="size-6" strokeWidth={2.5} />
+        )}
+      </button>
+    </div>
+  )
+}
+
 function TrackNavInner() {
   const pathname = usePathname()
   const { user } = useAuth()
+  const profileActive = pathname === "/profile"
 
   return (
     <>
@@ -146,60 +328,36 @@ function TrackNavInner() {
 
       {user ? (
         <div className="fixed inset-x-4 bottom-4 z-50 md:hidden">
-          <div className="mx-auto flex max-w-md items-center justify-between gap-1 rounded-2xl border border-border/70 bg-card px-2 py-2 shadow-md">
-            {trackNavItems.map((item) => {
-              const Icon = item.icon
-              const active = isActivePath(pathname, item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-2 py-1.5 text-[11px]"
-                >
-                  <Icon
-                    className={cn(
-                      "h-5 w-5",
-                      active ? "text-primary" : "text-muted-foreground"
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "mt-1",
-                      active
-                        ? "font-medium text-primary"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {item.name}
-                  </span>
-                </Link>
-              )
-            })}
-            <Link
-              href="/profile"
-              className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-2 py-1.5 text-[11px]"
-            >
-              <User
-                className={cn(
-                  "h-5 w-5",
-                  pathname === "/profile"
-                    ? "text-primary"
-                    : "text-muted-foreground"
-                )}
+          <DockedNavBar>
+            {trackNavLeft.map((item) => (
+              <MobileNavLink
+                key={item.href}
+                href={item.href}
+                name={item.name}
+                icon={item.icon}
+                active={isActivePath(pathname, item.href)}
               />
-              <span
-                className={cn(
-                  "mt-1",
-                  pathname === "/profile"
-                    ? "font-medium text-primary"
-                    : "text-muted-foreground"
-                )}
-              >
-                Profile
-              </span>
-            </Link>
-          </div>
+            ))}
+
+            <TrackMobileQuickAdd />
+
+            {trackNavRight.map((item) => (
+              <MobileNavLink
+                key={item.href}
+                href={item.href}
+                name={item.name}
+                icon={item.icon}
+                active={isActivePath(pathname, item.href)}
+              />
+            ))}
+
+            <MobileNavLink
+              href="/profile"
+              name="Profile"
+              icon={User}
+              active={profileActive}
+            />
+          </DockedNavBar>
         </div>
       ) : (
         <div className="fixed inset-x-4 bottom-4 z-50 md:hidden">
