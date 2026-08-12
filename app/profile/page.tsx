@@ -15,7 +15,13 @@ import {
   getAccessStateLabel,
   getMemberHomePathForState,
 } from "@/lib/subscription-status"
-import { ensureTrackProfile } from "@/lib/track/queries"
+import { toMonthKey } from "@/lib/track/month"
+import {
+  ensureTrackProfile,
+  getFirstExpenseAt,
+  getMonthSummary,
+  listIncomesForMonth,
+} from "@/lib/track/queries"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
@@ -38,15 +44,40 @@ export default async function ProfilePage() {
     if (!user) redirect("/sign-in")
 
     const profile = await ensureTrackProfile(supabase, user.id)
+    const monthKey = toMonthKey()
+    const [summary, incomes, firstExpenseAt] = await Promise.all([
+      getMonthSummary(
+        supabase,
+        user.id,
+        monthKey,
+        profile.preferred_currency
+      ),
+      listIncomesForMonth(supabase, user.id, monthKey),
+      getFirstExpenseAt(supabase, user.id),
+    ])
+    const incomeTotal = incomes.reduce((sum, row) => sum + row.amount, 0)
     const displayName =
-      user.user_metadata?.full_name || user.email?.split("@")[0] || "Member"
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.email?.split("@")[0] ||
+      "Member"
+    const avatarUrl =
+      user.user_metadata?.avatar_url ||
+      user.user_metadata?.picture ||
+      null
+    const trackingSince = firstExpenseAt ?? user.created_at
 
     return (
-      <div className="mx-auto w-full max-w-5xl px-6 pb-28 pt-6 md:pb-12 md:pt-24">
+      <div className="mx-auto w-full max-w-lg px-6 pb-28 pt-6 md:pb-12 md:pt-24">
         <TrackProfileForm
           profile={profile}
           displayName={displayName}
           email={user.email ?? ""}
+          avatarUrl={avatarUrl}
+          monthlyIncome={incomeTotal}
+          totalExpense={summary.total}
+          currency={profile.preferred_currency}
+          trackingSince={trackingSince}
         />
       </div>
     )

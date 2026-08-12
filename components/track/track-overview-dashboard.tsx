@@ -58,7 +58,7 @@ export function TrackOverviewDashboard({
     <div className="space-y-6 md:space-y-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Position Wise Track</p>
+          <p className="text-sm text-muted-foreground">Wise Track</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
             Your Finance Track
           </h1>

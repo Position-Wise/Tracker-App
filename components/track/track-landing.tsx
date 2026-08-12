@@ -12,7 +12,7 @@ export function TrackLanding() {
       <div className="relative mx-auto flex max-w-3xl flex-col items-start px-6 pb-24 pt-16 md:pt-24">
         <p className="flex items-center gap-2 text-sm font-medium text-primary">
           <Wallet className="h-4 w-4" />
-          Position Wise Track
+          Wise Track
         </p>
         <h1 className="mt-4 max-w-xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
           Know where your money goes.
