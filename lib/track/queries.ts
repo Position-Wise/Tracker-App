@@ -139,6 +139,23 @@ export async function ensureTrackProfile(
   return created as TrackProfile
 }
 
+/** Earliest expense date for a user, or null if they have none yet. */
+export async function getFirstExpenseAt(
+  supabase: SupabaseServerClient,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("spent_at")
+    .eq("user_id", userId)
+    .order("spent_at", { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return data?.spent_at ?? null
+}
+
 export async function ensureDefaultMoneySource(
   supabase: SupabaseServerClient,
   userId: string,

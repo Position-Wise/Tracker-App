@@ -179,7 +179,7 @@ function MobileNavLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-1 pb-1.5 pt-3 text-[11px]"
+      className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-1 py-1.5 text-[11px]"
     >
       <Icon
         className={cn(
@@ -201,21 +201,8 @@ function MobileNavLink({
 
 function DockedNavBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative mx-auto h-22 w-full max-w-md">
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full drop-shadow-md"
-        viewBox="0 0 360 72"
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        <path
-          d="M24 16 H128 C138 16 145 20 150 28 C158 44 169 52 180 52 C191 52 202 44 210 28 C215 20 222 16 232 16 H336 C348 16 356 24 356 36 V52 C356 62 348 70 336 70 H24 C12 70 4 62 4 52 V36 C4 24 12 16 24 16 Z"
-          className="fill-card stroke-border/70"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-      <div className="relative z-10 flex h-full items-end px-2 pb-2.5 pt-7">
+    <div className="relative mx-auto w-full max-w-md">
+      <div className="relative flex h-16 items-end rounded-[1.75rem] border border-border/70 bg-card px-1.5 pb-1 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.45)]">
         {children}
       </div>
     </div>
@@ -264,10 +251,10 @@ function TrackMobileQuickAdd() {
   return (
     <div
       ref={menuRef}
-      className="relative flex h-14 w-18 shrink-0 justify-center"
+      className="relative flex h-14 w-16 shrink-0 justify-center"
     >
       {open ? (
-        <div className="absolute bottom-[calc(100%+22px)] left-1/2 z-20 w-55 -translate-x-1/2 rounded-2xl border border-border/70 bg-card p-2 shadow-lg">
+        <div className="absolute bottom-[calc(100%+28px)] left-1/2 z-20 w-55 -translate-x-1/2 rounded-2xl border border-border/70 bg-card p-2 shadow-lg">
           <div className="space-y-1">
             {quickAddOptions.map((option) => {
               const Icon = option.icon
@@ -296,12 +283,17 @@ function TrackMobileQuickAdd() {
         </div>
       ) : null}
 
+      {/* Halo so the FAB sits cleanly over the bar without a warped SVG notch */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-0 size-[3.75rem] -translate-x-1/2 -translate-y-[42%] rounded-full bg-background"
+      />
       <button
         type="button"
         aria-label={open ? "Close quick add" : "Add transaction"}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="absolute left-1/2 top-0 flex size-14 -translate-x-1/2 -translate-y-[42%] items-center justify-center rounded-full bg-[#2a4064] text-white shadow-lg transition-transform active:scale-95"
+        className="absolute left-1/2 top-0 z-10 flex size-14 -translate-x-1/2 -translate-y-[42%] items-center justify-center rounded-full bg-[#2a4064] text-white shadow-[0_10px_24px_-8px_rgba(42,64,100,0.75)] transition-transform active:scale-95"
       >
         {open ? (
           <X className="size-6" strokeWidth={2.5} />
