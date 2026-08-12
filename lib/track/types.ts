@@ -40,12 +40,36 @@ export type CategorySpend = {
   total: number
 }
 
+export type DailySpendPoint = {
+  date: string
+  day: number
+  label: string
+  total: number
+  cumulative: number
+}
+
+export type InsightLedgerPoint = {
+  kind: "expense" | "income"
+  amount: number
+  at: string
+}
+
+export type InsightSeriesPoint = {
+  key: string
+  label: string
+  expense: number
+  income: number
+  cumulativeExpense: number
+  cumulativeIncome: number
+}
+
 export type MonthSummary = {
   monthKey: string
   currency: string
   total: number
   byCategory: CategorySpend[]
   recent: ExpenseWithCategory[]
+  dailySpend: DailySpendPoint[]
 }
 
 export type MoneySourceKind = "cash" | "bank" | "credit_card"

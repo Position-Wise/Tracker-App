@@ -7,8 +7,8 @@ import { toast } from "sonner"
 import { deleteMoneySource } from "@/app/app/actions"
 import { MoneySourceFormDialog } from "@/components/track/money-source-form-dialog"
 import { useTrackLedger } from "@/components/track/track-ledger-provider"
+import { useTrackMoney } from "@/components/track/track-privacy-provider"
 import { Button } from "@/components/ui/button"
-import { formatMoney } from "@/lib/track/month"
 import {
   MONEY_SOURCE_KIND_LABEL,
   sourceSubtitle,
@@ -26,6 +26,7 @@ type AccountsManagerProps = {
 export function AccountsManager({ embedded = false }: AccountsManagerProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
+  const { formatMoney } = useTrackMoney()
   const {
     sources,
     sourceBalance,

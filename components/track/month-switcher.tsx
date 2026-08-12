@@ -5,11 +5,19 @@ import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { formatMonthLabel, shiftMonthKey } from "@/lib/track/month"
+import {
+  formatMonthLabel,
+  formatMonthShortLabel,
+  shiftMonthKey,
+} from "@/lib/track/month"
+import { cn } from "@/lib/utils"
 
 type MonthSwitcherProps = {
   monthKey: string
   basePath: string
+  /** Compact "AUG 26" label. Default is full "August 2026". */
+  short?: boolean
+  className?: string
 }
 
 function hrefForMonth(basePath: string, month: string, search: URLSearchParams) {
@@ -19,13 +27,26 @@ function hrefForMonth(basePath: string, month: string, search: URLSearchParams) 
   return qs ? `${basePath}?${qs}` : basePath
 }
 
-function MonthSwitcherInner({ monthKey, basePath }: MonthSwitcherProps) {
+function MonthSwitcherInner({
+  monthKey,
+  basePath,
+  short,
+  className,
+}: MonthSwitcherProps) {
   const searchParams = useSearchParams()
   const prev = shiftMonthKey(monthKey, -1)
   const next = shiftMonthKey(monthKey, 1)
+  const label = short
+    ? formatMonthShortLabel(monthKey)
+    : formatMonthLabel(monthKey)
 
   return (
-    <div className="flex items-center gap-1 rounded-full border border-border bg-secondary/80 p-1">
+    <div
+      className={cn(
+        "flex items-center gap-1 rounded-full border border-border bg-secondary/80 p-1",
+        className
+      )}
+    >
       <Button
         asChild
         variant="ghost"
@@ -39,8 +60,13 @@ function MonthSwitcherInner({ monthKey, basePath }: MonthSwitcherProps) {
           <ChevronLeft />
         </Link>
       </Button>
-      <span className="min-w-36 px-1 text-center text-sm font-medium">
-        {formatMonthLabel(monthKey)}
+      <span
+        className={cn(
+          "px-1 text-center text-sm font-medium tabular-nums",
+          short ? "min-w-18 tracking-wide" : "min-w-36"
+        )}
+      >
+        {label}
       </span>
       <Button
         asChild
@@ -60,11 +86,21 @@ function MonthSwitcherInner({ monthKey, basePath }: MonthSwitcherProps) {
 }
 
 export function MonthSwitcher(props: MonthSwitcherProps) {
+  const label = props.short
+    ? formatMonthShortLabel(props.monthKey)
+    : formatMonthLabel(props.monthKey)
+
   return (
     <Suspense
       fallback={
-        <div className="min-w-36 rounded-full border border-border bg-secondary/80 px-4 py-2 text-center text-sm font-medium">
-          {formatMonthLabel(props.monthKey)}
+        <div
+          className={cn(
+            "rounded-full border border-border bg-secondary/80 px-4 py-2 text-center text-sm font-medium",
+            props.short ? "min-w-18 tracking-wide" : "min-w-36",
+            props.className
+          )}
+        >
+          {label}
         </div>
       }
     >

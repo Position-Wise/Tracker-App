@@ -4,8 +4,8 @@ import { useState } from "react"
 import { ExpenseFormDialog } from "@/components/track/expense-form-dialog"
 import { ExpensesList } from "@/components/track/expenses-list"
 import { MonthSwitcher } from "@/components/track/month-switcher"
+import { useTrackMoney } from "@/components/track/track-privacy-provider"
 import { Button } from "@/components/ui/button"
-import { formatMoney } from "@/lib/track/month"
 import type { TrackActivityItem } from "@/lib/track/activity-types"
 import type { ExpenseCategory, ExpenseWithCategory } from "@/lib/track/types"
 
@@ -29,6 +29,7 @@ export function TrackExpensesClient({
   transfers = [],
 }: TrackExpensesClientProps) {
   const [expenseOpen, setExpenseOpen] = useState(false)
+  const { formatMoney } = useTrackMoney()
 
   return (
     <div className="space-y-6">

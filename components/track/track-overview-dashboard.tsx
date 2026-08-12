@@ -9,14 +9,16 @@ import {
 } from "lucide-react"
 import { AccountsOverviewPanel } from "@/components/track/accounts-overview-panel"
 import { ExpenseActivityBoard } from "@/components/track/expense-activity-board"
+import { SpendInsightChart } from "@/components/track/spend-insight-chart"
 import { TransactionFormDialog } from "@/components/track/transaction-form-dialog"
 import { MonthSwitcher } from "@/components/track/month-switcher"
+import { useTrackMoney } from "@/components/track/track-privacy-provider"
 import { Button } from "@/components/ui/button"
-import { formatMoney } from "@/lib/track/month"
 import type {
   CategorySpend,
   ExpenseCategory,
   ExpenseWithCategory,
+  InsightLedgerPoint,
 } from "@/lib/track/types"
 import type { TrackActivityItem } from "@/lib/track/activity-types"
 import { cn } from "@/lib/utils"
@@ -28,6 +30,7 @@ type TrackOverviewDashboardProps = {
   incomeTotal?: number
   byCategory: CategorySpend[]
   recent: ExpenseWithCategory[]
+  insightLedger?: InsightLedgerPoint[]
   income?: TrackActivityItem[]
   transfers?: TrackActivityItem[]
   categories: ExpenseCategory[]
@@ -42,11 +45,13 @@ export function TrackOverviewDashboard({
   incomeTotal = 0,
   byCategory,
   recent,
+  insightLedger = [],
   income = [],
   transfers = [],
   categories,
 }: TrackOverviewDashboardProps) {
   const [formKind, setFormKind] = useState<FormKind>(null)
+  const { formatMoney } = useTrackMoney()
 
   const net = incomeTotal - expenseTotal
   const topCategories = useMemo(() => byCategory.slice(0, 4), [byCategory])
@@ -56,18 +61,20 @@ export function TrackOverviewDashboard({
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Wise Track</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
-            Your Finance Track
-          </h1>
-        </div>
-        <MonthSwitcher monthKey={monthKey} basePath="/app" />
+      <header>
+        <p className="text-sm text-muted-foreground">Wise Track</p>
+        
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <section className="track-panel flex flex-col p-5 sm:p-6">
+          <div className="mb-5 flex justify-between">
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
+            Track Finance
+            </h1>
+            <MonthSwitcher monthKey={monthKey} basePath="/app" short />
+          </div>
+
           <div className="grid gap-6 sm:grid-cols-3">
             <Metric
               label="Total expenses"
@@ -133,7 +140,14 @@ export function TrackOverviewDashboard({
             )}
           </div>
 
-          <div className="mt-auto grid gap-2 pt-8 sm:grid-cols-3">
+          <SpendInsightChart
+            className="mt-8"
+            monthKey={monthKey}
+            currency={currency}
+            ledger={insightLedger}
+          />
+
+          <div className="mt-auto hidden gap-2 pt-8 md:grid md:grid-cols-3">
             <ActionTile
               icon={TrendingDown}
               label="Expense"
@@ -156,7 +170,10 @@ export function TrackOverviewDashboard({
           </div>
         </section>
 
-        <AccountsOverviewPanel />
+        <AccountsOverviewPanel
+          monthKey={monthKey}
+          insightLedger={insightLedger}
+        />
       </div>
 
       {formKind ? (
