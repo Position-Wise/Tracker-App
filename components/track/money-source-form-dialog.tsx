@@ -373,6 +373,8 @@ type SourceSelectProps = {
   defaultValue?: string
   required?: boolean
   excludeId?: string
+  /** When set, only these account kinds appear. */
+  kinds?: MoneySourceKind[]
 }
 
 export function MoneySourceSelect({
@@ -382,10 +384,14 @@ export function MoneySourceSelect({
   defaultValue,
   required,
   excludeId,
+  kinds,
 }: SourceSelectProps) {
   const options = useMemo(
-    () => sources.filter((s) => s.id !== excludeId),
-    [sources, excludeId]
+    () =>
+      sources.filter(
+        (s) => s.id !== excludeId && (!kinds || kinds.includes(s.kind))
+      ),
+    [sources, excludeId, kinds]
   )
   const fallback =
     defaultValue && options.some((s) => s.id === defaultValue)

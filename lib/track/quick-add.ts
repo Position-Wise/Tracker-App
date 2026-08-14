@@ -1,9 +1,14 @@
-export type QuickAddKind = "expense" | "income" | "transfer"
+export type QuickAddKind = "expense" | "income" | "transfer" | "card_bill"
 
 export const TRACK_QUICK_ADD_EVENT = "track:quick-add"
 
 export function isQuickAddKind(value: string | null | undefined): value is QuickAddKind {
-  return value === "expense" || value === "income" || value === "transfer"
+  return (
+    value === "expense" ||
+    value === "income" ||
+    value === "transfer" ||
+    value === "card_bill"
+  )
 }
 
 export function requestQuickAdd(kind: QuickAddKind) {

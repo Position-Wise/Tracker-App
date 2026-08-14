@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeftRight,
+  CreditCard,
   TrendingDown,
   TrendingUp,
 } from "lucide-react"
@@ -36,7 +37,7 @@ type TrackOverviewDashboardProps = {
   categories: ExpenseCategory[]
 }
 
-type FormKind = "expense" | "income" | "transfer" | null
+type FormKind = "expense" | "income" | "transfer" | "card_bill" | null
 
 export function TrackOverviewDashboard({
   monthKey,
@@ -53,6 +54,15 @@ export function TrackOverviewDashboard({
   const [formKind, setFormKind] = useState<FormKind>(null)
   const { formatMoney } = useTrackMoney()
 
+  const cardBillsPaid = useMemo(
+    () =>
+      transfers
+        .filter((t) => t.transferPurpose === "card_bill")
+        .reduce((sum, t) => sum + t.amount, 0),
+    [transfers]
+  )
+
+  /** True spend only — card bill payments settle debt, they are not new spend. */
   const net = incomeTotal - expenseTotal
   const topCategories = useMemo(() => byCategory.slice(0, 4), [byCategory])
 
@@ -75,21 +85,26 @@ export function TrackOverviewDashboard({
             <MonthSwitcher monthKey={monthKey} basePath="/app" short />
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className="grid gap-5 grid-cols-2 sm:grid-cols-4">
             <Metric
               label="Total expenses"
               value={formatMoney(expenseTotal, currency)}
-              hint="This month"
+              hint="Spend this month"
             />
             <Metric
               label="Total income"
               value={formatMoney(incomeTotal, currency)}
-              hint="This month"
+              hint="Money earned"
+            />
+            <Metric
+              label="Card bills paid"
+              value={formatMoney(cardBillsPaid, currency)}
+              hint="Debt paid · not spend"
             />
             <Metric
               label="Net"
               value={formatMoney(net, currency)}
-              hint={net < 0 ? "Spending ahead" : "Balance"}
+              hint={net < 0 ? "Spending ahead" : "Income − spend"}
             />
           </div>
 
@@ -147,7 +162,7 @@ export function TrackOverviewDashboard({
             ledger={insightLedger}
           />
 
-          <div className="mt-auto hidden gap-2 pt-8 md:grid md:grid-cols-3">
+          <div className="mt-auto hidden gap-2 pt-8 md:grid md:grid-cols-2 lg:grid-cols-4">
             <ActionTile
               icon={TrendingDown}
               label="Expense"
@@ -160,6 +175,12 @@ export function TrackOverviewDashboard({
               label="Transfer"
               description="Move between accounts"
               onClick={() => setFormKind("transfer")}
+            />
+            <ActionTile
+              icon={CreditCard}
+              label="Card bill"
+              description="Pay down card used"
+              onClick={() => setFormKind("card_bill")}
             />
             <ActionTile
               icon={TrendingUp}

@@ -304,7 +304,7 @@ export async function listTransfersForMonth(
   const { data, error } = await supabase
     .from("transfers")
     .select(
-      "id,user_id,from_source_id,to_source_id,amount,currency,occurred_at,note,created_at,updated_at,from_source:money_sources!transfers_from_source_id_fkey(name),to_source:money_sources!transfers_to_source_id_fkey(name)"
+      "id,user_id,from_source_id,to_source_id,amount,currency,occurred_at,note,purpose,created_at,updated_at,from_source:money_sources!transfers_from_source_id_fkey(name),to_source:money_sources!transfers_to_source_id_fkey(name)"
     )
     .eq("user_id", userId)
     .gte("occurred_at", startIso)
@@ -330,6 +330,7 @@ export async function listTransfersForMonth(
       currency: r.currency,
       occurred_at: r.occurred_at,
       note: r.note,
+      purpose: r.purpose === "card_bill" ? "card_bill" : "transfer",
       created_at: r.created_at,
       updated_at: r.updated_at,
       from_source_name: fromJoined?.name ?? null,
@@ -344,8 +345,20 @@ export async function computeSourceBalances(
   sources: MoneySource[]
 ): Promise<Record<string, number>> {
   const balances: Record<string, number> = {}
+  const kindById = new Map<string, MoneySource["kind"]>()
   for (const source of sources) {
     balances[source.id] = source.openingBalance
+    kindById.set(source.id, source.kind)
+  }
+
+  /** Positive delta = money into the account (asset view). Cards invert to debt. */
+  const apply = (sourceId: string, assetDelta: number) => {
+    if (balances[sourceId] == null) return
+    if (kindById.get(sourceId) === "credit_card") {
+      balances[sourceId] -= assetDelta
+    } else {
+      balances[sourceId] += assetDelta
+    }
   }
 
   const [incomesRes, transfersRes, expensesRes] = await Promise.all([
@@ -362,23 +375,19 @@ export async function computeSourceBalances(
   ])
 
   for (const row of incomesRes.data ?? []) {
-    const id = row.to_source_id as string
-    if (balances[id] == null) continue
-    balances[id] += num(row.amount as number | string)
+    apply(row.to_source_id as string, num(row.amount as number | string))
   }
 
   for (const row of transfersRes.data ?? []) {
-    const fromId = row.from_source_id as string
-    const toId = row.to_source_id as string
     const amount = num(row.amount as number | string)
-    if (balances[fromId] != null) balances[fromId] -= amount
-    if (balances[toId] != null) balances[toId] += amount
+    apply(row.from_source_id as string, -amount)
+    apply(row.to_source_id as string, amount)
   }
 
   for (const row of expensesRes.data ?? []) {
     const id = row.source_id as string
-    if (!id || balances[id] == null) continue
-    balances[id] -= num(row.amount as number | string)
+    if (!id) continue
+    apply(id, -num(row.amount as number | string))
   }
 
   return balances
@@ -395,22 +404,29 @@ export function incomeToActivity(row: IncomeRow): TrackActivityItem {
     note: row.note,
     categoryName: row.title,
     walletName: row.to_source_name ?? undefined,
+    toSourceId: row.to_source_id,
   }
 }
 
 export function transferToActivity(row: TransferRow): TrackActivityItem {
+  const isCardBill = row.purpose === "card_bill"
   return {
     id: row.id,
     kind: "transfer",
     title:
       row.note?.trim() ||
-      `${row.from_source_name ?? "From"} → ${row.to_source_name ?? "To"}`,
+      (isCardBill
+        ? `Card bill · ${row.to_source_name ?? "Card"}`
+        : `${row.from_source_name ?? "From"} → ${row.to_source_name ?? "To"}`),
     amount: row.amount,
     currency: row.currency,
     occurredAt: row.occurred_at,
     note: row.note,
     fromWallet: row.from_source_name ?? undefined,
     toWallet: row.to_source_name ?? undefined,
+    fromSourceId: row.from_source_id,
+    toSourceId: row.to_source_id,
+    transferPurpose: isCardBill ? "card_bill" : "transfer",
   }
 }
 
