@@ -9,6 +9,8 @@ import {
   createIncome,
   createTransfer,
   updateExpense,
+  updateIncome,
+  updateTransfer,
   type TrackActionResult,
 } from "@/app/app/actions"
 import LoadingSubmitButton from "@/components/ui/loading-submit-button"
@@ -25,14 +27,20 @@ import { MoneySourceSelect } from "@/components/track/money-source-form-dialog"
 import { useTrackLedger } from "@/components/track/track-ledger-provider"
 import { toDateInputValue } from "@/lib/track/month"
 import { DEFAULT_INCOME_TITLES } from "@/lib/track/money-sources"
+import type { TrackActivityItem } from "@/lib/track/activity-types"
 import type { ExpenseCategory, ExpenseWithCategory } from "@/lib/track/types"
 
-export type TransactionFormKind = "expense" | "income" | "transfer"
+export type TransactionFormKind =
+  | "expense"
+  | "income"
+  | "transfer"
+  | "card_bill"
 
 type TransactionFormDialogProps = {
   kind: TransactionFormKind
   categories?: ExpenseCategory[]
   expense?: ExpenseWithCategory | null
+  activity?: TrackActivityItem | null
   open?: boolean
   onOpenChange?: (open: boolean) => void
   triggerLabel?: string
@@ -46,6 +54,7 @@ export function TransactionFormDialog({
   kind,
   categories = [],
   expense,
+  activity,
   open: controlledOpen,
   onOpenChange,
   triggerLabel,
@@ -57,14 +66,30 @@ export function TransactionFormDialog({
   const open = controlledOpen ?? uncontrolledOpen
   const setOpen = onOpenChange ?? setUncontrolledOpen
 
+  const editingIncome = kind === "income" && activity?.kind === "income" ? activity : null
+  const editingTransfer =
+    (kind === "transfer" || kind === "card_bill") && activity?.kind === "transfer"
+      ? activity
+      : null
+  const isCardBill =
+    kind === "card_bill" || editingTransfer?.transferPurpose === "card_bill"
+
   const title =
     kind === "expense"
       ? expense
         ? "Edit expense"
         : "Add expense"
       : kind === "income"
-        ? "Add income"
-        : "Add transfer"
+        ? editingIncome
+          ? "Edit income"
+          : "Add income"
+        : isCardBill
+          ? editingTransfer
+            ? "Edit card bill"
+            : "Pay card bill"
+          : editingTransfer
+            ? "Edit transfer"
+            : "Add transfer"
 
   const defaultTrigger =
     triggerLabel ??
@@ -72,11 +97,15 @@ export function TransactionFormDialog({
       ? "Add expense"
       : kind === "income"
         ? "Add income"
-        : "Add transfer")
+        : kind === "card_bill"
+          ? "Pay card bill"
+          : "Add transfer")
 
   const defaultDate = expense
     ? toDateInputValue(expense.spent_at)
-    : toDateInputValue(new Date().toISOString())
+    : activity
+      ? toDateInputValue(activity.occurredAt)
+      : toDateInputValue(new Date().toISOString())
 
   const linkedSourceId =
     expense?.source_id ??
@@ -95,26 +124,38 @@ export function TransactionFormDialog({
   }
 
   async function handleIncome(formData: FormData) {
-    const result = await createIncome(formData)
+    const action = editingIncome ? updateIncome : createIncome
+    const result = await action(formData)
     if (!result.ok) {
       toast.error(result.error ?? "Could not save income")
       return
     }
-    toast.success("Income recorded")
+    toast.success(editingIncome ? "Income updated" : "Income recorded")
     setOpen(false)
     startTransition(() => router.refresh())
   }
 
   async function handleTransfer(formData: FormData) {
-    const result = await createTransfer(formData)
+    const action = editingTransfer ? updateTransfer : createTransfer
+    const result = await action(formData)
     if (!result.ok) {
-      toast.error(result.error ?? "Could not transfer")
+      toast.error(result.error ?? "Could not save")
       return
     }
-    toast.success("Transfer recorded")
+    toast.success(
+      isCardBill
+        ? editingTransfer
+          ? "Card bill updated"
+          : "Card bill paid"
+        : editingTransfer
+          ? "Transfer updated"
+          : "Transfer recorded"
+    )
     setOpen(false)
     startTransition(() => router.refresh())
   }
+
+  const incomeTitleDefault = editingIncome?.title ?? "Salary"
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -174,7 +215,10 @@ export function TransactionFormDialog({
 
         {kind === "income" ? (
           <form action={handleIncome} className="space-y-4">
-            <AmountField />
+            {editingIncome ? (
+              <input type="hidden" name="incomeId" value={editingIncome.id} />
+            ) : null}
+            <AmountField defaultValue={editingIncome?.amount} />
             <div className="space-y-1.5">
               <label htmlFor="title" className="text-sm font-medium">
                 Income type
@@ -183,9 +227,17 @@ export function TransactionFormDialog({
                 id="title"
                 name="title"
                 required
-                defaultValue="Salary"
+                defaultValue={incomeTitleDefault}
                 className={fieldClassName()}
               >
+                {editingIncome?.title &&
+                !(DEFAULT_INCOME_TITLES as readonly string[]).includes(
+                  editingIncome.title
+                ) ? (
+                  <option value={editingIncome.title}>
+                    {editingIncome.title}
+                  </option>
+                ) : null}
                 {DEFAULT_INCOME_TITLES.map((label) => (
                   <option key={label} value={label}>
                     {label}
@@ -197,33 +249,92 @@ export function TransactionFormDialog({
               name="toSourceId"
               label="Deposit to"
               sources={sources}
+              defaultValue={editingIncome?.toSourceId}
+              kinds={["cash", "bank"]}
               required
             />
-            <DateNoteFields defaultDate={defaultDate} />
+            <DateNoteFields
+              defaultDate={defaultDate}
+              note={editingIncome?.note}
+            />
             <LoadingSubmitButton className="w-full" pendingText="Saving...">
-              Add income
+              {editingIncome ? "Save changes" : "Add income"}
             </LoadingSubmitButton>
           </form>
         ) : null}
 
         {kind === "transfer" ? (
           <form action={handleTransfer} className="space-y-4">
-            <AmountField />
+            {editingTransfer ? (
+              <input
+                type="hidden"
+                name="transferId"
+                value={editingTransfer.id}
+              />
+            ) : null}
+            <input type="hidden" name="purpose" value="transfer" />
+            <AmountField defaultValue={editingTransfer?.amount} />
             <MoneySourceSelect
               name="fromSourceId"
               label="From"
               sources={sources}
+              defaultValue={editingTransfer?.fromSourceId}
               required
             />
             <MoneySourceSelect
               name="toSourceId"
               label="To"
               sources={sources}
+              defaultValue={editingTransfer?.toSourceId}
               required
             />
-            <DateNoteFields defaultDate={defaultDate} />
+            <DateNoteFields
+              defaultDate={defaultDate}
+              note={editingTransfer?.note}
+            />
             <LoadingSubmitButton className="w-full" pendingText="Saving...">
-              Add transfer
+              {editingTransfer ? "Save changes" : "Add transfer"}
+            </LoadingSubmitButton>
+          </form>
+        ) : null}
+
+        {kind === "card_bill" ? (
+          <form action={handleTransfer} className="space-y-4">
+            {editingTransfer ? (
+              <input
+                type="hidden"
+                name="transferId"
+                value={editingTransfer.id}
+              />
+            ) : null}
+            <input type="hidden" name="purpose" value="card_bill" />
+            <p className="text-sm text-muted-foreground">
+              Pays down the card&apos;s used amount and deducts from your bank
+              or cash.
+            </p>
+            <AmountField defaultValue={editingTransfer?.amount} />
+            <MoneySourceSelect
+              name="fromSourceId"
+              label="Pay from"
+              sources={sources}
+              defaultValue={editingTransfer?.fromSourceId}
+              kinds={["cash", "bank"]}
+              required
+            />
+            <MoneySourceSelect
+              name="toSourceId"
+              label="Credit card"
+              sources={sources}
+              defaultValue={editingTransfer?.toSourceId}
+              kinds={["credit_card"]}
+              required
+            />
+            <DateNoteFields
+              defaultDate={defaultDate}
+              note={editingTransfer?.note ?? "Credit card bill"}
+            />
+            <LoadingSubmitButton className="w-full" pendingText="Saving...">
+              {editingTransfer ? "Save changes" : "Pay bill"}
             </LoadingSubmitButton>
           </form>
         ) : null}

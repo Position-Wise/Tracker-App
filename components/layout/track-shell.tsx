@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import {
   ArrowLeftRight,
+  CreditCard,
   LogIn,
   Moon,
   Plus,
@@ -66,6 +67,12 @@ const quickAddOptions: {
     label: "Transfer",
     description: "Move between accounts",
     icon: ArrowLeftRight,
+  },
+  {
+    kind: "card_bill",
+    label: "Card bill",
+    description: "Pay down card used",
+    icon: CreditCard,
   },
 ]
 

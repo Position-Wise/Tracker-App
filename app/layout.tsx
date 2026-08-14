@@ -6,6 +6,7 @@ import NavShell from "@/components/layout/nav-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { resolveTrackPlatformRedirectUrl } from "@/lib/resolve-track-platform-url"
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -16,7 +17,7 @@ const workSans = Work_Sans({
 export const metadata: Metadata = {
   title: "Position Wise Advisory",
   description:
-    "Position Wise Advisory is your place to start investing smartly",
+    "Personalized investment advice and a free expense tracker. See where your money goes, then grow it with guidance built around you.",
 };
 
 export default async function RootLayout({
@@ -27,6 +28,9 @@ export default async function RootLayout({
   const headerStore = await headers()
   const product = headerStore.get("x-product")
   const isTrack = product === "track"
+  const trackHomeUrl = isTrack
+    ? "/"
+    : await resolveTrackPlatformRedirectUrl("/")
 
   return (
     <html lang="en" className={workSans.variable} suppressHydrationWarning>
@@ -34,11 +38,11 @@ export default async function RootLayout({
         className={
           isTrack
             ? "min-h-dvh bg-background font-sans text-foreground"
-            : "bg-background font-sans text-foreground py-16 md:py-0"
+            : "bg-background font-sans text-foreground pt-16 pb-28 md:py-0"
         }
         suppressHydrationWarning
       >
-        <NavShell product={product} />
+        <NavShell product={product} trackHomeUrl={trackHomeUrl} />
         {children}
         <Toaster />
         <Analytics />

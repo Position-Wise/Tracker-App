@@ -17,9 +17,14 @@ function shouldShowAuthenticatedNav(pathname: string) {
 type NavShellProps = {
   /** From proxy `x-product` — must come from the server so SSR matches client. */
   product?: string | null
+  /** Absolute Wise Track URL for marketing nav (server-resolved). */
+  trackHomeUrl?: string
 }
 
-export default function NavShell({ product = null }: NavShellProps) {
+export default function NavShell({
+  product = null,
+  trackHomeUrl,
+}: NavShellProps) {
   const pathname = usePathname()
 
   if (product === "track") {
@@ -37,7 +42,7 @@ export default function NavShell({ product = null }: NavShellProps) {
   return (
     <ThemeProvider enabled={false}>
       <AuthProvider>
-        <Navbar />
+        <Navbar trackHomeUrl={trackHomeUrl} />
       </AuthProvider>
     </ThemeProvider>
   )

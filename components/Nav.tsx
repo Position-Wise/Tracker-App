@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Clock3,
   Crown,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase/client";
@@ -37,7 +38,11 @@ import {
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export default function Navbar() {
+type NavbarProps = {
+  trackHomeUrl?: string
+}
+
+export default function Navbar({ trackHomeUrl }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -82,6 +87,9 @@ export default function Navbar() {
     { name: "Home", href: "/", icon: Home },
     { name: "Insights", href: "/insights", icon: BarChart3 },
     { name: "Membership", href: "/membership", icon: Layers },
+    ...(trackHomeUrl
+      ? [{ name: "Track", href: trackHomeUrl, icon: Wallet }]
+      : []),
   ];
 
   const authedNavItems = [
@@ -229,7 +237,7 @@ export default function Navbar() {
       </header>
 
       {/* ================= MOBILE TOP ================= */}
-      <header className="fixed top-0 left-0 z-40 w-full border-b border-border bg-background/95 shadow-sm md:hidden">
+      <header className="fixed top-0 left-0 z-[60] w-full border-b border-border bg-background/95 shadow-sm md:hidden">
         <div className="px-6 py-4 flex justify-center">
           <Link href="/" className="font-semibold">
             Position Wise Advisory
@@ -238,9 +246,11 @@ export default function Navbar() {
       </header>
 
       {/* ================= MOBILE BOTTOM PILL ================= */}
-      <div className="fixed inset-x-4 bottom-4 z-50 md:hidden">
+      <div className="fixed inset-x-4 bottom-4 z-[80] md:hidden">
         <div className="mx-auto flex max-w-md items-center justify-between gap-1 rounded-2xl border border-border/70 bg-card px-2 py-2 shadow-md">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => !(trackHomeUrl && !user && item.name === "Insights"))
+            .map((item) => {
             const Icon = item.icon;
             const isActive =
               pathname === item.href ||

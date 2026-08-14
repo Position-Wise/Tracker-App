@@ -114,6 +114,8 @@ export type IncomeRow = {
   to_source_name?: string | null
 }
 
+export type TransferPurpose = "transfer" | "card_bill"
+
 export type TransferRow = {
   id: string
   user_id: string
@@ -123,6 +125,7 @@ export type TransferRow = {
   currency: string
   occurred_at: string
   note: string | null
+  purpose: TransferPurpose
   created_at: string
   updated_at: string
   from_source_name?: string | null

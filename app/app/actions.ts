@@ -534,12 +534,66 @@ export async function createIncome(formData: FormData): Promise<TrackActionResul
   return { ok: true, id: data?.id }
 }
 
+export async function updateIncome(formData: FormData): Promise<TrackActionResult> {
+  const incomeId = text(formData, "incomeId")
+  const amount = Number(text(formData, "amount"))
+  const title = text(formData, "title")
+  const toSourceId = text(formData, "toSourceId")
+  const spentDate = text(formData, "spentAt")
+  const note = text(formData, "note") || null
+
+  if (!incomeId || !Number.isFinite(amount) || amount <= 0 || !title || !toSourceId) {
+    return { ok: false, error: "Enter amount, type, and account." }
+  }
+
+  const { supabase, user, error } = await requireTrackUser()
+  if (!user || error) return { ok: false, error: error ?? "Sign in required." }
+
+  const { error: updateError } = await supabase
+    .from("incomes")
+    .update({
+      to_source_id: toSourceId,
+      amount,
+      title,
+      occurred_at: dateInputToIso(spentDate || new Date().toISOString().slice(0, 10)),
+      note,
+    })
+    .eq("id", incomeId)
+    .eq("user_id", user.id)
+
+  if (updateError) return { ok: false, error: updateError.message }
+
+  revalidateTrack()
+  return { ok: true }
+}
+
+export async function deleteIncome(formData: FormData): Promise<TrackActionResult> {
+  const incomeId = text(formData, "incomeId")
+  if (!incomeId) return { ok: false, error: "Missing income." }
+
+  const { supabase, user, error } = await requireTrackUser()
+  if (!user || error) return { ok: false, error: error ?? "Sign in required." }
+
+  const { error: deleteError } = await supabase
+    .from("incomes")
+    .delete()
+    .eq("id", incomeId)
+    .eq("user_id", user.id)
+
+  if (deleteError) return { ok: false, error: deleteError.message }
+
+  revalidateTrack()
+  return { ok: true }
+}
+
 export async function createTransfer(formData: FormData): Promise<TrackActionResult> {
   const amount = Number(text(formData, "amount"))
   const fromSourceId = text(formData, "fromSourceId")
   const toSourceId = text(formData, "toSourceId")
   const spentDate = text(formData, "spentAt")
   const note = text(formData, "note") || null
+  const purposeRaw = text(formData, "purpose")
+  const purpose = purposeRaw === "card_bill" ? "card_bill" : "transfer"
 
   if (!Number.isFinite(amount) || amount <= 0 || !fromSourceId || !toSourceId) {
     return { ok: false, error: "Enter amount and both accounts." }
@@ -550,6 +604,16 @@ export async function createTransfer(formData: FormData): Promise<TrackActionRes
 
   const { supabase, user, error } = await requireTrackUser()
   if (!user || error) return { ok: false, error: error ?? "Sign in required." }
+
+  if (purpose === "card_bill") {
+    const kindError = await validateCardBillSources(
+      supabase,
+      user.id,
+      fromSourceId,
+      toSourceId
+    )
+    if (kindError) return { ok: false, error: kindError }
+  }
 
   const profile = await ensureTrackProfile(supabase, user.id)
 
@@ -562,7 +626,8 @@ export async function createTransfer(formData: FormData): Promise<TrackActionRes
       amount,
       currency: profile.preferred_currency,
       occurred_at: dateInputToIso(spentDate || new Date().toISOString().slice(0, 10)),
-      note,
+      note: note ?? (purpose === "card_bill" ? "Credit card bill" : null),
+      purpose,
     })
     .select("id")
     .single()
@@ -571,4 +636,104 @@ export async function createTransfer(formData: FormData): Promise<TrackActionRes
 
   revalidateTrack()
   return { ok: true, id: data?.id }
+}
+
+export async function updateTransfer(formData: FormData): Promise<TrackActionResult> {
+  const transferId = text(formData, "transferId")
+  const amount = Number(text(formData, "amount"))
+  const fromSourceId = text(formData, "fromSourceId")
+  const toSourceId = text(formData, "toSourceId")
+  const spentDate = text(formData, "spentAt")
+  const note = text(formData, "note") || null
+  const purposeRaw = text(formData, "purpose")
+  const purpose = purposeRaw === "card_bill" ? "card_bill" : "transfer"
+
+  if (
+    !transferId ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    !fromSourceId ||
+    !toSourceId
+  ) {
+    return { ok: false, error: "Enter amount and both accounts." }
+  }
+  if (fromSourceId === toSourceId) {
+    return { ok: false, error: "Pick two different accounts." }
+  }
+
+  const { supabase, user, error } = await requireTrackUser()
+  if (!user || error) return { ok: false, error: error ?? "Sign in required." }
+
+  if (purpose === "card_bill") {
+    const kindError = await validateCardBillSources(
+      supabase,
+      user.id,
+      fromSourceId,
+      toSourceId
+    )
+    if (kindError) return { ok: false, error: kindError }
+  }
+
+  const { error: updateError } = await supabase
+    .from("transfers")
+    .update({
+      from_source_id: fromSourceId,
+      to_source_id: toSourceId,
+      amount,
+      occurred_at: dateInputToIso(spentDate || new Date().toISOString().slice(0, 10)),
+      note,
+      purpose,
+    })
+    .eq("id", transferId)
+    .eq("user_id", user.id)
+
+  if (updateError) return { ok: false, error: updateError.message }
+
+  revalidateTrack()
+  return { ok: true }
+}
+
+export async function deleteTransfer(formData: FormData): Promise<TrackActionResult> {
+  const transferId = text(formData, "transferId")
+  if (!transferId) return { ok: false, error: "Missing transfer." }
+
+  const { supabase, user, error } = await requireTrackUser()
+  if (!user || error) return { ok: false, error: error ?? "Sign in required." }
+
+  const { error: deleteError } = await supabase
+    .from("transfers")
+    .delete()
+    .eq("id", transferId)
+    .eq("user_id", user.id)
+
+  if (deleteError) return { ok: false, error: deleteError.message }
+
+  revalidateTrack()
+  return { ok: true }
+}
+
+async function validateCardBillSources(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  fromSourceId: string,
+  toSourceId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("money_sources")
+    .select("id,kind")
+    .eq("user_id", userId)
+    .in("id", [fromSourceId, toSourceId])
+
+  if (error) return error.message
+  const byId = new Map((data ?? []).map((row) => [row.id as string, row.kind as string]))
+  const fromKind = byId.get(fromSourceId)
+  const toKind = byId.get(toSourceId)
+  if (!fromKind || !toKind) return "Pick valid accounts."
+  if (fromKind === "credit_card") {
+    return "Pay the bill from a bank or cash account."
+  }
+  if (toKind !== "credit_card") {
+    return "Choose a credit card to pay."
+  }
+  return null
 }
