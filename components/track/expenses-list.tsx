@@ -2,6 +2,7 @@
 
 import { ExpenseActivityBoard } from "@/components/track/expense-activity-board"
 import type { TrackActivityItem } from "@/lib/track/activity-types"
+import type { ExpenseGroupBy } from "@/lib/track/expense-browse"
 import type { ExpenseCategory, ExpenseWithCategory } from "@/lib/track/types"
 
 type ExpensesListProps = {
@@ -11,6 +12,15 @@ type ExpensesListProps = {
   monthKey?: string
   income?: TrackActivityItem[]
   transfers?: TrackActivityItem[]
+  showBrowseControls?: boolean
+  accountFilterId?: string | null
+  query?: string
+  onQueryChange?: (query: string) => void
+  groupBy?: ExpenseGroupBy
+  onGroupByChange?: (groupBy: ExpenseGroupBy) => void
+  initialExpenseId?: string | null
+  onSelectedExpenseIdChange?: (id: string | null) => void
+  onClearAccountFilter?: () => void
   onAddExpense?: () => void
   onAddIncome?: () => void
   onAddTransfer?: () => void
@@ -23,6 +33,15 @@ export function ExpensesList({
   monthKey,
   income,
   transfers,
+  showBrowseControls,
+  accountFilterId,
+  query,
+  onQueryChange,
+  groupBy,
+  onGroupByChange,
+  initialExpenseId,
+  onSelectedExpenseIdChange,
+  onClearAccountFilter,
   onAddExpense,
   onAddIncome,
   onAddTransfer,
@@ -35,9 +54,19 @@ export function ExpensesList({
       categories={categories}
       currency={currency}
       monthKey={monthKey}
+      showBrowseControls={showBrowseControls}
+      accountFilterId={accountFilterId}
+      query={query}
+      onQueryChange={onQueryChange}
+      groupBy={groupBy}
+      onGroupByChange={onGroupByChange}
+      initialExpenseId={initialExpenseId}
+      onSelectedExpenseIdChange={onSelectedExpenseIdChange}
+      onClearAccountFilter={onClearAccountFilter}
       onAddExpense={onAddExpense}
       onAddIncome={onAddIncome}
       onAddTransfer={onAddTransfer}
     />
   )
 }
+

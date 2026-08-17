@@ -7,6 +7,7 @@ import {
   listCategories,
   listIncomesForMonth,
   listInsightLedger,
+  listRecentExpenses,
   listTransfersForMonth,
   transferToActivity,
 } from "@/lib/track/queries"
@@ -29,13 +30,14 @@ export default async function TrackOverviewPage({ searchParams }: PageProps) {
   if (!user) return null
 
   const profile = await ensureTrackProfile(supabase, user.id)
-  const [summary, categories, incomes, transfers, insightLedger] =
+  const [summary, categories, incomes, transfers, insightLedger, recentAcross] =
     await Promise.all([
       getMonthSummary(supabase, user.id, monthKey, profile.preferred_currency),
       listCategories(supabase, user.id),
       listIncomesForMonth(supabase, user.id, monthKey),
       listTransfersForMonth(supabase, user.id, monthKey),
       listInsightLedger(supabase, user.id, monthKey),
+      listRecentExpenses(supabase, user.id),
     ])
 
   const incomeTotal = incomes.reduce((sum, row) => sum + row.amount, 0)
@@ -47,6 +49,8 @@ export default async function TrackOverviewPage({ searchParams }: PageProps) {
       expenseTotal={summary.total}
       incomeTotal={incomeTotal}
       byCategory={summary.byCategory}
+      expenses={summary.expenses}
+      recentAcross={recentAcross}
       recent={summary.recent}
       insightLedger={insightLedger}
       income={incomes.map(incomeToActivity)}

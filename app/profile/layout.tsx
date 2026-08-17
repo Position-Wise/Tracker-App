@@ -1,6 +1,9 @@
 import type { Metadata } from "next"
-import { ReactNode } from "react"
+import { ReactNode, Suspense } from "react"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
+import { AdvisoryProfileSkeleton } from "@/components/loading/app-skeletons"
+import { TrackProfileSkeleton } from "@/components/loading/track-skeletons"
 import { noIndexRobots } from "@/lib/seo"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
@@ -20,6 +23,18 @@ interface ProfileLayoutProps {
 export default async function ProfileLayout({
   children,
 }: ProfileLayoutProps) {
+  const product = (await headers()).get("x-product")
+  const fallback =
+    product === "track" ? <TrackProfileSkeleton /> : <AdvisoryProfileSkeleton />
+
+  return (
+    <Suspense fallback={fallback}>
+      <ProfileAccessGate>{children}</ProfileAccessGate>
+    </Suspense>
+  )
+}
+
+async function ProfileAccessGate({ children }: { children: ReactNode }) {
   const supabase = await createSupabaseServerClient()
   const [routeAccess, subdomain] = await Promise.all([
     getCurrentUserAccess(supabase),

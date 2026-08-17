@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
-import { ReactNode } from "react"
+import { ReactNode, Suspense } from "react"
 import { redirect } from "next/navigation"
+import { DashboardSkeleton } from "@/components/loading/app-skeletons"
 import { noIndexRobots } from "@/lib/seo"
 import { getCurrentUserAccessState } from "@/lib/subscription-access"
 import { getProtectedRouteRedirectPath } from "@/lib/subscription-status"
@@ -16,9 +17,15 @@ interface DashboardLayoutProps {
   children: ReactNode
 }
 
-export default async function DashboardLayout({
-  children,
-}: DashboardLayoutProps) {
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardAccessGate>{children}</DashboardAccessGate>
+    </Suspense>
+  )
+}
+
+async function DashboardAccessGate({ children }: { children: ReactNode }) {
   const routeAccess = await getCachedCurrentUserAccess()
   const tenantRedirect = await resolveTenantRedirectUrl(routeAccess)
   if (tenantRedirect) {

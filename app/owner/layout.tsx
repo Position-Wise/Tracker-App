@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
+import { Suspense } from "react"
 import { redirect } from "next/navigation"
+import { OwnerSkeleton } from "@/components/loading/app-skeletons"
 import { noIndexRobots } from "@/lib/seo"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
 import { getSubdomain } from "@/lib/get-subdomain"
@@ -14,7 +16,15 @@ interface OwnerLayoutProps {
   children: ReactNode
 }
 
-export default async function OwnerLayout({ children }: OwnerLayoutProps) {
+export default function OwnerLayout({ children }: OwnerLayoutProps) {
+  return (
+    <Suspense fallback={<OwnerSkeleton />}>
+      <OwnerAccessGate>{children}</OwnerAccessGate>
+    </Suspense>
+  )
+}
+
+async function OwnerAccessGate({ children }: { children: ReactNode }) {
   const [access, subdomain] = await Promise.all([getCurrentUserAccess(), getSubdomain()])
 
   if (!access.user) {

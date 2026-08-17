@@ -111,6 +111,26 @@ export function buildDailySpendSeries(
   return points
 }
 
+/** Relative label like "Today", "Yesterday", or a local YYYY-MM-DD date. */
+export function relativeDayLabel(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return toDateInputValue(iso)
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(date)
+  target.setHours(0, 0, 0, 0)
+  const diffDays = Math.round(
+    (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  if (diffDays === 0) return "Today"
+  if (diffDays === -1) return "Yesterday"
+  if (diffDays === 1) return "Tomorrow"
+  if (diffDays < -1 && diffDays > -7) return `${Math.abs(diffDays)} days ago`
+  return toDateInputValue(iso)
+}
+
 /** Date input value (YYYY-MM-DD) from an ISO timestamp, in local time. */
 export function toDateInputValue(iso: string): string {
   const d = new Date(iso)
