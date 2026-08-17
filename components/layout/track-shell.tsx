@@ -113,10 +113,10 @@ function TrackProfileMenu() {
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <Button asChild variant="outline" size="sm">
-          <Link href="/sign-in">Sign in</Link>
+          <Link href="/sign-in?next=/app">Sign in</Link>
         </Button>
         <Button asChild size="sm">
-          <Link href="/sign-up">Get started</Link>
+          <Link href="/sign-up?next=/app">Get started</Link>
         </Button>
       </div>
     )
@@ -133,7 +133,7 @@ function TrackProfileMenu() {
     } catch (logoutError) {
       console.error("Logout error:", logoutError)
     }
-    router.replace("/sign-in")
+    router.replace("/sign-in?next=/app")
     router.refresh()
   }
 
@@ -362,14 +362,14 @@ function TrackNavInner() {
         <div className="fixed inset-x-4 bottom-4 z-50 md:hidden">
           <div className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl border border-border/70 bg-card px-3 py-2 shadow-md">
             <Link
-              href="/sign-in"
+              href="/sign-in?next=/app"
               className="flex flex-1 flex-col items-center py-1.5 text-[11px] text-muted-foreground"
             >
               <LogIn className="h-5 w-5" />
               <span className="mt-1">Sign in</span>
             </Link>
             <Button asChild size="sm" className="flex-1">
-              <Link href="/sign-up">Get started</Link>
+              <Link href="/sign-up?next=/app">Get started</Link>
             </Button>
           </div>
         </div>

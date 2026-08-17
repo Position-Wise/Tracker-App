@@ -40,6 +40,7 @@ type UsersTableViewProps = {
   profiles: ProfileRow[]
   plans: SubscriptionPlanRow[]
   usageByUser: Record<string, UsageStats>
+  canEraseUsers?: boolean
 }
 
 const STATUS_FILTER_OPTIONS = [
@@ -430,14 +431,13 @@ function UserViewDrawer({
 function UserRemoveButton({ profile }: { profile: ProfileRow }) {
   const router = useRouter()
   const [isRemoving, startTransition] = useTransition()
-  const isProtectedAdmin = isAdminRole(profile.role ?? null)
 
   function handleRemove() {
-    if (isRemoving || isProtectedAdmin) return
+    if (isRemoving) return
 
     const userLabel = profile.full_name || profile.email || profile.id
     const shouldDelete = window.confirm(
-      `Remove ${userLabel}? This permanently deletes the account and related data.`
+      `Permanently delete ${userLabel}? This erases their login, profile, subscriptions, payment proofs, Track finances, and all other app data. This cannot be undone.`
     )
 
     if (!shouldDelete) return
@@ -446,7 +446,7 @@ function UserRemoveButton({ profile }: { profile: ProfileRow }) {
       try {
         const result = await deleteUserWithResult(profile.id)
         if (result.ok) {
-          toast.success("User removed from app records")
+          toast.success("User and all related data were deleted")
           router.refresh()
           return
         }
@@ -464,9 +464,9 @@ function UserRemoveButton({ profile }: { profile: ProfileRow }) {
       variant="destructive"
       size="icon-sm"
       onClick={handleRemove}
-      disabled={isRemoving || isProtectedAdmin}
-      title={isProtectedAdmin ? "Admin accounts cannot be removed here" : "Remove user"}
-      aria-label="Remove user"
+      disabled={isRemoving}
+      title="Permanently delete user and all related data"
+      aria-label="Permanently delete user"
     >
       <Trash2 />
     </Button>
@@ -477,6 +477,7 @@ export default function UsersTableView({
   profiles,
   plans,
   usageByUser,
+  canEraseUsers = false,
 }: UsersTableViewProps) {
   const [searchValue, setSearchValue] = useState("")
   const [planFilter, setPlanFilter] = useState("all")
@@ -622,7 +623,7 @@ export default function UsersTableView({
                         planNameById={planNameById}
                         usage={usage}
                       />
-                      <UserRemoveButton profile={profile} />
+                      {canEraseUsers ? <UserRemoveButton profile={profile} /> : null}
                     </div>
                   </TableCell>
                 </TableRow>

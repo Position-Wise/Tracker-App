@@ -1,10 +1,16 @@
+import type { Metadata } from "next"
 import { ReactNode } from "react"
 import { redirect } from "next/navigation"
+import { noIndexRobots } from "@/lib/seo"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCachedCurrentUserAccess } from "@/lib/cached-access"
 import { resolveTenantRedirectUrl } from "@/lib/tenant-redirect"
 import { resolveCurrentUserIsAdmin, type MinimalDbClient } from "./access"
 import AdminNav from "./_components/admin-nav"
+
+export const metadata: Metadata = {
+  robots: noIndexRobots,
+}
 
 interface AdminLayoutProps {
   children: ReactNode

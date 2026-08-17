@@ -5,6 +5,16 @@ import {
   type AccessQueryClient,
 } from "@/lib/current-user-access"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
+import { getSubdomain } from "@/lib/get-subdomain"
+import {
+  readAuthIntent,
+  sanitizeAuthNext,
+  type AuthIntent,
+} from "@/lib/auth-intent"
+import {
+  OWNER_PLATFORM_SUBDOMAIN,
+  TRACK_PLATFORM_SUBDOMAIN,
+} from "@/lib/reserved-subdomains"
 import { resolveRoute } from "@/lib/route-access"
 import { getProtectedRouteRedirectPath } from "@/lib/subscription-status"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -13,8 +23,14 @@ import { resolveTrackPlatformRedirectUrl } from "@/lib/resolve-track-platform-ur
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
 
+type PostLoginOptions = {
+  next?: string | null
+  intent?: string | null
+}
+
 export async function resolvePostLoginRedirectHref(
-  supabase: SupabaseServerClient
+  supabase: SupabaseServerClient,
+  options?: PostLoginOptions
 ): Promise<string> {
   const {
     data: { user },
@@ -24,20 +40,37 @@ export async function resolvePostLoginRedirectHref(
     return "/sign-in"
   }
 
-  const routeAccess = await getCurrentUserAccess(supabase)
+  const [routeAccess, subdomain] = await Promise.all([
+    getCurrentUserAccess(supabase),
+    getSubdomain(),
+  ])
+  const next = sanitizeAuthNext(options?.next)
+  const intent: AuthIntent | null = readAuthIntent(options?.intent)
+  const wantsTrack =
+    subdomain === TRACK_PLATFORM_SUBDOMAIN ||
+    next === "/app" ||
+    intent === "track"
+
+  // Track is its own product. Signing in there (or with next=/app) must stay on track,
+  // even if the user also has an advisory organisation membership.
+  if (wantsTrack) {
+    return resolveTrackPlatformRedirectUrl("/app")
+  }
+
+  if (subdomain === OWNER_PLATFORM_SUBDOMAIN || (routeAccess.isOwner && !routeAccess.organizationId)) {
+    return "/owner"
+  }
+
   const tenantRedirect = await resolveTenantRedirectUrl(routeAccess, {
     path: "/dashboard",
     supabase,
-    // Org members who signed in on track (or other reserved hosts) still go to their tenant.
-    allowFromReservedHost: true,
   })
   if (tenantRedirect) {
     return tenantRedirect
   }
 
-  // No org membership → Track product host (or stay if already there).
-  if (!routeAccess.organizationId && !routeAccess.isOwner) {
-    return resolveTrackPlatformRedirectUrl("/app")
+  if (routeAccess.isOwner) {
+    return "/owner"
   }
 
   const routeRedirect = resolveRoute(routeAccess)
@@ -60,6 +93,10 @@ export async function resolvePostLoginRedirectHref(
     adminResolutionSource: source,
     subscription,
   })
+
+  if (next === "/subscribe" || next === "/waiting" || next === "/owner") {
+    return next
+  }
 
   const subscriptionRedirect = getProtectedRouteRedirectPath(derived.status)
   if (subscriptionRedirect) {

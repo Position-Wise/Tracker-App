@@ -1,7 +1,4 @@
-import {
-  createSupabaseServerClient,
-  createSupabaseServiceRoleClient,
-} from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const PAYMENT_PROOFS_BUCKET = "payment-proofs"
 const STORAGE_REF_PREFIX = `${PAYMENT_PROOFS_BUCKET}:`
@@ -65,6 +62,16 @@ export function isPaymentProofStorageRef(stored: string | null | undefined): boo
   return Boolean(parsePaymentProofStoragePath(stored))
 }
 
+function toRpcBoolean(value: unknown) {
+  if (typeof value === "boolean") return value
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === "true") return true
+    if (normalized === "false") return false
+  }
+  return false
+}
+
 export async function createPaymentProofSignedUrl(
   stored: string | null | undefined,
   expiresInSeconds = 3600
@@ -78,9 +85,16 @@ export async function createPaymentProofSignedUrl(
     return null
   }
 
-  const serviceRole = createSupabaseServiceRoleClient()
-  const supabase = serviceRole ?? (await createSupabaseServerClient())
-  const { data, error } = await supabase.storage
+  const userClient = await createSupabaseServerClient()
+  const { data: canRead, error: canReadError } = await userClient.rpc(
+    "can_read_payment_proof",
+    { storage_path: path }
+  )
+  if (canReadError || !toRpcBoolean(canRead)) {
+    return null
+  }
+
+  const { data, error } = await userClient.storage
     .from(PAYMENT_PROOFS_BUCKET)
     .createSignedUrl(path, expiresInSeconds)
 
@@ -101,10 +115,13 @@ export async function resolvePaymentProofUrlsForRecords<
       if (!paymentProof) return record
 
       const signedUrl = await createPaymentProofSignedUrl(paymentProof)
-      return {
-        ...record,
-        payment_proof: signedUrl ?? paymentProof,
+      if (signedUrl) {
+        return { ...record, payment_proof: signedUrl }
       }
+      if (paymentProof.trim().startsWith("http://") || paymentProof.trim().startsWith("https://")) {
+        return record
+      }
+      return { ...record, payment_proof: null }
     })
   )
 }

@@ -6,7 +6,9 @@ import {
   ArrowRight,
   Check,
 } from "lucide-react"
+import { BrandLogo } from "@/components/brand/logo"
 import { Button } from "@/components/ui/button"
+import { SiteFooter } from "@/components/marketing/site-footer"
 import {
   AdvisoryPreview,
   DualProductPreview,
@@ -44,9 +46,7 @@ export function HomeLandingView({
 
         <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-6 py-24 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-14">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              Position Wise Advisory
-            </p>
+            <BrandLogo className="h-8 w-auto sm:h-9" priority />
             <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-[3.35rem]">
               See your money
               <span className="block">clearly. Grow it with</span>
@@ -195,7 +195,9 @@ export function HomeLandingView({
                 className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
                 asChild
               >
-                <Link href="/membership">See membership</Link>
+                <Link href="/advisory">
+                  Explore advisory
+                </Link>
               </Button>
             </div>
             <AdvisoryPreview className="mt-8 shadow-2xl" />
@@ -358,76 +360,43 @@ export function HomeLandingView({
         </article>
       </section>
 
-      <section
-        data-stack-panel
-        className="relative bg-primary px-6 py-20 text-primary-foreground lg:z-50"
-      >
-        <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-2 md:items-center md:gap-16">
-          <div>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Start on the path that fits today.
-            </h2>
-            <p className="mt-4 max-w-lg text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
-              Track for free whenever you want the picture. Request advisory
-              when you want guidance that uses that picture.
-            </p>
+      <div className="relative bg-muted lg:z-50">
+        <section
+          data-stack-panel
+          className="relative bg-primary px-6 py-20 text-primary-foreground"
+        >
+          <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-2 md:items-center md:gap-16">
+            <div>
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                Start on the path that fits today.
+              </h2>
+              <p className="mt-4 max-w-lg text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
+                Track for free whenever you want the picture. Request advisory
+                when you want guidance that uses that picture.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 md:justify-end">
+              <Button
+                size="lg"
+                className="bg-white text-primary hover:bg-white/90"
+                asChild
+              >
+                <Link href="/sign-up">Get personalized advice</Link>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                asChild
+              >
+                <Link href={trackSignUpUrl}>Start tracking free</Link>
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3 md:justify-end">
-            <Button
-              size="lg"
-              className="bg-white text-primary hover:bg-white/90"
-              asChild
-            >
-              <Link href="/sign-up">Get personalized advice</Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
-              asChild
-            >
-              <Link href={trackSignUpUrl}>Start tracking free</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <footer className="relative border-t border-border/70 bg-background px-6 py-12 text-center text-xs text-muted-foreground lg:z-50">
-        <p className="text-sm font-medium text-foreground">
-          Position Wise Advisory
-        </p>
-        <p className="mx-auto mt-2 max-w-md">
-          Personalized investment guidance and a free expense tracker for people
-          who take their capital seriously.
-        </p>
-        <div className="mt-5 flex flex-wrap justify-center gap-4 text-sm">
-          <a href="#about" className="hover:text-foreground">
-            About
-          </a>
-          <a href="#advisory" className="hover:text-foreground">
-            Advisory
-          </a>
-          <a href="#track" className="hover:text-foreground">
-            Wise Track
-          </a>
-          <Link href="/membership" className="hover:text-foreground">
-            Membership
-          </Link>
-          <Link href="/insights" className="hover:text-foreground">
-            Insights
-          </Link>
-          <Link href="/sign-in" className="hover:text-foreground">
-            Sign in
-          </Link>
-        </div>
-        <p className="mt-6">
-          Advisory is educational support, not a guarantee of returns.
-        </p>
-        <p className="mt-2">
-          © {new Date().getFullYear()} Position Wise Advisory. All rights
-          reserved.
-        </p>
-      </footer>
+        <SiteFooter trackHomeUrl={trackHomeUrl} className="bg-transparent" />
+      </div>
     </main>
   )
 }

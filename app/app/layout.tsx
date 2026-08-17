@@ -1,5 +1,7 @@
+import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { redirect } from "next/navigation"
+import { noIndexRobots } from "@/lib/seo"
 import { TrackAppClientShell } from "@/components/track/track-app-client-shell"
 import { getSubdomain } from "@/lib/get-subdomain"
 import { TRACK_PLATFORM_SUBDOMAIN } from "@/lib/reserved-subdomains"
@@ -12,6 +14,10 @@ import {
   listMoneySources,
 } from "@/lib/track/queries"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+export const metadata: Metadata = {
+  robots: noIndexRobots,
+}
 
 interface TrackAppLayoutProps {
   children: ReactNode

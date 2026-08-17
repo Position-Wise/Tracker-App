@@ -1,6 +1,7 @@
 import type { ProfileRow } from "../types"
 import { fetchAdminProfiles, fetchAdminSubscriptionPlans } from "../queries"
 import UsersTableView from "./users-table-view"
+import { getCachedCurrentUserAccess } from "@/lib/cached-access"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -61,9 +62,10 @@ async function fetchUsageByUser(profiles: ProfileRow[]) {
 }
 
 export default async function AdminUsersPage() {
-  const [profiles, plans] = await Promise.all([
+  const [profiles, plans, access] = await Promise.all([
     fetchAdminProfiles(),
     fetchAdminSubscriptionPlans(),
+    getCachedCurrentUserAccess(),
   ])
   const usageByUser = await fetchUsageByUser(profiles)
 
@@ -81,7 +83,12 @@ export default async function AdminUsersPage() {
               No profiles found yet.
             </p>
           ) : (
-            <UsersTableView profiles={profiles} plans={plans} usageByUser={usageByUser} />
+            <UsersTableView
+              profiles={profiles}
+              plans={plans}
+              usageByUser={usageByUser}
+              canEraseUsers={access.isOwner}
+            />
           )}
         </CardContent>
       </Card>

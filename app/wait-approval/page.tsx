@@ -1,9 +1,15 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCurrentUserAccessState } from "@/lib/subscription-access"
 import { getMemberHomePathForState } from "@/lib/subscription-status"
+import { noIndexRobots } from "@/lib/seo"
+
+export const metadata: Metadata = {
+  robots: noIndexRobots,
+}
 
 function formatDate(value: string | null | undefined) {
   if (!value) return null

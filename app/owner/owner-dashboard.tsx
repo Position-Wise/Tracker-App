@@ -6,6 +6,7 @@ import Image from "next/image"
 import {
   assignUserToOrganization,
   createOrganization,
+  eraseUser,
   promoteUserToOrgAdmin,
 } from "./actions"
 
@@ -50,6 +51,7 @@ export default function OwnerDashboard({
   const [isCreatingOrg, startCreateTransition] = useTransition()
   const [isAssigning, startAssignTransition] = useTransition()
   const [promotingUserId, setPromotingUserId] = useState<string | null>(null)
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
 
   useEffect(() => {
     setOrganizations(initialOrganizations)
@@ -103,6 +105,29 @@ export default function OwnerDashboard({
   function userDisplayName(user: UserRow) {
     const name = user.full_name?.trim()
     return name || "Unnamed user"
+  }
+
+  function handleEraseUser(user: UserRow) {
+    const label = userDisplayName(user)
+    const shouldDelete = window.confirm(
+      `Permanently delete ${label}? This erases their login, profile, subscriptions, payment proofs, Track finances, and all other app data. This cannot be undone.`
+    )
+    if (!shouldDelete) return
+
+    setUserMessage(null)
+    setDeletingUserId(user.id)
+    startAssignTransition(async () => {
+      const result = await eraseUser(user.id)
+      if (!result.ok) {
+        setUserMessage(result.error)
+        setDeletingUserId(null)
+        return
+      }
+      setUsers((prev) => prev.filter((row) => row.id !== user.id))
+      setUserMessage("User and all related data were deleted.")
+      setDeletingUserId(null)
+      router.refresh()
+    })
   }
 
   function handleCreateOrganization(formData: FormData) {
@@ -321,13 +346,14 @@ export default function OwnerDashboard({
                 const selectedOrg = selectedOrganizationByUser[user.id] ?? ""
                 const currentlyAssigning = assigningUserId === user.id && isAssigning
                 const hasOrganization = Boolean(user.organization_id)
+                const selectedValue = selectedOrg || user.organization_id || ""
 
                 return (
                   <article
                     key={user.id}
-                    className="flex flex-col gap-3 rounded-md border border-border p-4 md:flex-row md:items-center md:justify-between"
+                    className="grid grid-cols-1 items-center gap-3 rounded-md border border-border p-4 lg:grid-cols-[minmax(0,1.4fr)_12rem_11.5rem_10.5rem_5.75rem]"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       {user.avatar_url ? (
                         <Image
                           src={user.avatar_url}
@@ -335,66 +361,83 @@ export default function OwnerDashboard({
                           width={40}
                           height={40}
                           sizes="40px"
-                          className="h-10 w-10 rounded-full object-cover"
+                          className="h-10 w-10 shrink-0 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-xs">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-xs">
                           N/A
                         </div>
                       )}
-                      <p className="font-medium">{userDisplayName(user)}</p>
-                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                        {hasOrganization
-                          ? `Org: ${user.organization_name ?? "Assigned"}`
-                          : "No organization"}
-                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{userDisplayName(user)}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {hasOrganization
+                            ? user.organization_name ?? "Assigned"
+                            : "No organization"}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <select
-                        className="rounded-md border border-border bg-background px-3 py-2"
-                        value={selectedOrg || user.organization_id || ""}
-                        onChange={(event) =>
-                          setSelectedOrganizationByUser((prev) => ({
-                            ...prev,
-                            [user.id]: event.target.value,
-                          }))
-                        }
-                      >
-                        <option value="">Select organization</option>
-                        {organizationOptions.map((org) => (
-                          <option key={org.id} value={org.id}>
-                            {org.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        className="rounded-md bg-foreground px-4 py-2 text-background disabled:opacity-60"
-                        disabled={
-                          !selectedOrg ||
-                          currentlyAssigning ||
-                          (hasOrganization && selectedOrg === user.organization_id)
-                        }
-                        onClick={() => handleAssign(user.id)}
-                      >
-                        {currentlyAssigning
-                          ? "Saving..."
-                          : hasOrganization
-                            ? "Change organization"
-                            : "Assign"}
-                      </button>
-                    </div>
-                    {hasOrganization && user.organization_id ? (
-                      <button
-                        type="button"
-                        className="rounded-md border border-border px-3 py-2 text-xs disabled:opacity-60"
-                        disabled={promotingUserId === user.id}
-                        onClick={() => handlePromote(user.id, user.organization_id!)}
-                      >
-                        {promotingUserId === user.id ? "Promoting..." : "Promote to org admin"}
-                      </button>
-                    ) : null}
+                    <select
+                      className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      value={selectedValue}
+                      onChange={(event) =>
+                        setSelectedOrganizationByUser((prev) => ({
+                          ...prev,
+                          [user.id]: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Select organization</option>
+                      {organizationOptions.map((org) => (
+                        <option key={org.id} value={org.id}>
+                          {org.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      className="h-9 w-full rounded-md bg-foreground px-3 text-sm text-background disabled:opacity-60"
+                      disabled={
+                        !selectedOrg ||
+                        currentlyAssigning ||
+                        deletingUserId === user.id ||
+                        (hasOrganization && selectedOrg === user.organization_id)
+                      }
+                      onClick={() => handleAssign(user.id)}
+                    >
+                      {currentlyAssigning
+                        ? "Saving..."
+                        : hasOrganization
+                          ? "Change org"
+                          : "Assign"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="h-9 w-full rounded-md border border-border px-3 text-sm disabled:opacity-40"
+                      disabled={
+                        !hasOrganization ||
+                        promotingUserId === user.id ||
+                        deletingUserId === user.id
+                      }
+                      onClick={() => {
+                        if (!user.organization_id) return
+                        handlePromote(user.id, user.organization_id)
+                      }}
+                    >
+                      {promotingUserId === user.id ? "Promoting..." : "Promote to admin"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="h-9 w-full rounded-md border border-destructive px-3 text-sm text-destructive disabled:opacity-60"
+                      disabled={deletingUserId === user.id || currentlyAssigning}
+                      onClick={() => handleEraseUser(user)}
+                    >
+                      {deletingUserId === user.id ? "..." : "Delete"}
+                    </button>
                   </article>
                 )
               })

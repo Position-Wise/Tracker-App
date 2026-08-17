@@ -127,7 +127,10 @@ export default async function ProfilePage() {
         <div className="rounded-xl border border-border bg-card p-8 space-y-6">
           <div className="flex items-center gap-6">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={avatarUrl} />
+              <AvatarImage
+                src={avatarUrl}
+                alt={user.user_metadata?.full_name || user.email || "Member avatar"}
+              />
               <AvatarFallback>
                 {user.email?.charAt(0).toUpperCase()}
               </AvatarFallback>

@@ -1,8 +1,14 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
 import { getCurrentUserAccessState } from "@/lib/subscription-access"
 import { WaitingClient } from "@/app/waiting/waiting-client"
 import { getMemberHomePathForState } from "@/lib/subscription-status"
+import { noIndexRobots } from "@/lib/seo"
+
+export const metadata: Metadata = {
+  robots: noIndexRobots,
+}
 
 export default async function WaitingPage() {
   const [access, state] = await Promise.all([

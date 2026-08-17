@@ -95,14 +95,20 @@ export default function AskAdminDialog({
               rows={6}
               maxLength={2000}
               value={message}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "ask-admin-error" : undefined}
               onChange={(event) => setMessage(event.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40 aria-invalid:border-destructive"
               placeholder="Tell admin what you need help with."
             />
           </div>
 
           {error ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div
+              id="ask-admin-error"
+              role="alert"
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
               {error}
             </div>
           ) : null}

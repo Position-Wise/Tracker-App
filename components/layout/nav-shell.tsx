@@ -19,11 +19,13 @@ type NavShellProps = {
   product?: string | null
   /** Absolute Wise Track URL for marketing nav (server-resolved). */
   trackHomeUrl?: string
+  trackSignUpUrl?: string
 }
 
 export default function NavShell({
   product = null,
   trackHomeUrl,
+  trackSignUpUrl,
 }: NavShellProps) {
   const pathname = usePathname()
 
@@ -42,7 +44,7 @@ export default function NavShell({
   return (
     <ThemeProvider enabled={false}>
       <AuthProvider>
-        <Navbar trackHomeUrl={trackHomeUrl} />
+        <Navbar trackHomeUrl={trackHomeUrl} trackSignUpUrl={trackSignUpUrl} />
       </AuthProvider>
     </ThemeProvider>
   )

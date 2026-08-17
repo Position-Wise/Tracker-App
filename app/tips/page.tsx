@@ -1,7 +1,4 @@
-import {
-  createSupabaseServerClient,
-  createSupabaseServiceRoleClient,
-} from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCurrentUserAccessState } from "@/lib/subscription-access"
@@ -86,21 +83,6 @@ export default async function TipsPage() {
         getOrganizationNameFromMembershipRow(
           (membershipRow as OrganizationMembershipRow | null) ?? null
         ) ?? "Organization"
-
-      if (organizationName === "Organization") {
-        const serviceRoleClient = createSupabaseServiceRoleClient()
-        if (serviceRoleClient) {
-          const { data: serviceOrgRow } = await serviceRoleClient
-            .from("organizations")
-            .select("id,name")
-            .eq("id", routeAccess.organizationId)
-            .maybeSingle()
-          const serviceName = (serviceOrgRow?.name ?? "").trim()
-          if (serviceName) {
-            organizationName = serviceName
-          }
-        }
-      }
     }
   }
 

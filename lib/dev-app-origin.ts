@@ -1,4 +1,6 @@
-import { isLocalDevHostname } from "@/lib/tenant-host"
+import { sanitizeAuthNext } from "@/lib/auth-intent"
+import { TRACK_PLATFORM_SUBDOMAIN } from "@/lib/reserved-subdomains"
+import { isLocalDevHostname, parseTenantSlugFromHostHeader } from "@/lib/tenant-host"
 
 const DEFAULT_DEV_PORT = "3000"
 
@@ -16,21 +18,26 @@ export function getDevAppOrigin(): string {
   return `http://localhost:${port}`
 }
 
-export function getOAuthCallbackUrl(): string {
+export function getOAuthCallbackUrl(next?: string | null): string {
   if (typeof window === "undefined") return "/auth/callback"
 
   const origin = window.location.origin
 
   // OAuth must return to the same origin that started the flow, or PKCE cookies won't match.
-  if (process.env.NODE_ENV === "development" && isLocalDevHostname(window.location.hostname)) {
-    return `${origin}/auth/callback`
-  }
+  const callbackOrigin =
+    process.env.NODE_ENV === "development" &&
+    !isLocalDevHostname(window.location.hostname)
+      ? getDevAppOrigin()
+      : origin
 
-  if (process.env.NODE_ENV === "development") {
-    return `${getDevAppOrigin()}/auth/callback`
-  }
-
-  return `${origin}/auth/callback`
+  const safeNext =
+    sanitizeAuthNext(next) ??
+    (parseTenantSlugFromHostHeader(window.location.host) === TRACK_PLATFORM_SUBDOMAIN
+      ? "/app"
+      : null)
+  const callback = `${callbackOrigin}/auth/callback`
+  if (!safeNext) return callback
+  return `${callback}?next=${encodeURIComponent(safeNext)}`
 }
 
 export function parseDevOrigin(): { hostname: string; port: string } {
