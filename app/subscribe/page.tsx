@@ -1,8 +1,14 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import SubscriptionOnboardingFlow from "@/components/subscribe/subscription-onboarding-flow"
 import { getCurrentUserAccessState } from "@/lib/subscription-access"
 import { getCachedCurrentUserAccess } from "@/lib/cached-access"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { noIndexRobots } from "@/lib/seo"
+
+export const metadata: Metadata = {
+  robots: noIndexRobots,
+}
 
 type PlanRow = {
   id: string

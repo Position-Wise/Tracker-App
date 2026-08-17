@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { AUTH_INTENT_COOKIE } from "@/lib/auth-intent"
 import { coerceLocalDevRedirect } from "@/lib/dev-app-origin"
 import { resolvePostLoginRedirectHref } from "@/lib/post-login-redirect"
 import {
@@ -9,6 +10,8 @@ import {
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
+  const next = requestUrl.searchParams.get("next")
+  const intent = request.cookies.get(AUTH_INTENT_COOKIE)?.value ?? null
 
   let response = NextResponse.redirect(new URL("/dashboard", request.url))
   const supabase = createSupabaseRouteHandlerClient(request, response)
@@ -24,9 +27,13 @@ export async function GET(request: NextRequest) {
       return failed
     }
 
-    const href = coerceLocalDevRedirect(await resolvePostLoginRedirectHref(supabase), request)
+    const href = coerceLocalDevRedirect(
+      await resolvePostLoginRedirectHref(supabase, { next, intent }),
+      request
+    )
     const success = NextResponse.redirect(new URL(href, request.url))
     copyResponseCookies(response, success)
+    success.cookies.delete(AUTH_INTENT_COOKIE)
     return success
   }
 

@@ -12,6 +12,16 @@ const OWNER_HOST_PUBLIC_PREFIXES = [
   "/sign-up",
   "/auth/",
   "/forbidden",
+  "/privacy",
+  "/terms",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/manifest.webmanifest",
+  "/icon",
+  "/apple-icon",
+  "/favicon.ico",
+  "/opengraph-image",
+  "/twitter-image",
 ] as const
 
 const TRACK_HOST_PUBLIC_PREFIXES = [
@@ -20,6 +30,16 @@ const TRACK_HOST_PUBLIC_PREFIXES = [
   "/sign-up",
   "/auth/",
   "/forbidden",
+  "/privacy",
+  "/terms",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/manifest.webmanifest",
+  "/icon",
+  "/apple-icon",
+  "/favicon.ico",
+  "/opengraph-image",
+  "/twitter-image",
 ] as const
 
 function isOwnerHostPublicPath(pathname: string) {
@@ -162,5 +182,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 }

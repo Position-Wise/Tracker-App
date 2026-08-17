@@ -1,5 +1,7 @@
 import Link from "next/link"
 import { ArrowRight, Check, Wallet } from "lucide-react"
+import { BrandLogo } from "@/components/brand/logo"
+import { SiteFooter } from "@/components/marketing/site-footer"
 import { Button } from "@/components/ui/button"
 
 const points = [
@@ -11,6 +13,7 @@ const points = [
 
 export function TrackLanding() {
   return (
+    <>
     <main className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
       <div
         aria-hidden
@@ -18,7 +21,8 @@ export function TrackLanding() {
       />
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-24 pt-16 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:pt-24">
         <div>
-          <p className="flex items-center gap-2 text-sm font-medium text-primary">
+          <BrandLogo className="h-8 w-auto" priority />
+          <p className="mt-6 flex items-center gap-2 text-sm font-medium text-primary">
             <Wallet className="h-4 w-4" />
             Wise Track
             <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
@@ -42,13 +46,13 @@ export function TrackLanding() {
           </ul>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href="/sign-up">
+              <Link href="/sign-up?next=/app">
                 Start tracking free
                 <ArrowRight />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/sign-in">Sign in</Link>
+              <Link href="/sign-in?next=/app">Sign in</Link>
             </Button>
           </div>
         </div>
@@ -100,5 +104,7 @@ export function TrackLanding() {
         </div>
       </div>
     </main>
+    <SiteFooter trackHomeUrl="/" className="pb-24 md:pb-0" />
+    </>
   )
 }

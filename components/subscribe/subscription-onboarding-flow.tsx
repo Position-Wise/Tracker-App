@@ -187,10 +187,11 @@ function PaymentQrPanel({
           <div className="rounded-md border border-border/70 bg-background p-3">
             <Image
               src={paymentQrUrl}
-              alt="Payment QR"
+              alt="UPI payment QR code for Position Wise Advisory"
               width={512}
               height={512}
               sizes="(max-width: 768px) 80vw, 320px"
+              quality={70}
               className="mx-auto h-auto w-full max-w-xs rounded-md"
             />
           </div>

@@ -36,8 +36,6 @@ debug.log
 
 # vercel
 .vercel
-.vscode
-.cursor
 
 # typescript
 *.tsbuildinfo

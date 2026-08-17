@@ -1,10 +1,16 @@
+import type { Metadata } from "next"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { mergeAuthCookieWriteOptions } from "@/lib/auth-cookie-options"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
+import { noIndexRobots } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  robots: noIndexRobots,
+}
 
 type OrganizationRow = {
   id: string

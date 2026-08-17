@@ -1,13 +1,20 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { HomeLanding } from "@/components/marketing/home-landing"
 import { TrackLanding } from "@/components/track/track-landing"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
 import { getSubdomain } from "@/lib/get-subdomain"
+import { getHomeShareMetadata } from "@/lib/seo"
 import {
   OWNER_PLATFORM_SUBDOMAIN,
   TRACK_PLATFORM_SUBDOMAIN,
 } from "@/lib/reserved-subdomains"
 import { resolveTenantRedirectUrl } from "@/lib/tenant-redirect"
+
+export async function generateMetadata(): Promise<Metadata> {
+  const subdomain = await getSubdomain()
+  return getHomeShareMetadata(subdomain === TRACK_PLATFORM_SUBDOMAIN)
+}
 
 export default async function Home() {
   const [access, subdomain] = await Promise.all([getCurrentUserAccess(), getSubdomain()])

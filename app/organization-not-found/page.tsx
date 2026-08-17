@@ -1,4 +1,12 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+import { noIndexRobots } from "@/lib/seo"
+
+export const metadata: Metadata = {
+  title: "Organization not found",
+  description: "This subdomain does not match any organization.",
+  robots: noIndexRobots,
+}
 
 export default function OrganizationNotFoundPage() {
   return (

@@ -36,13 +36,23 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+import { BrandLogoLink } from "@/components/brand/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type NavbarProps = {
   trackHomeUrl?: string
+  trackSignUpUrl?: string
 }
 
-export default function Navbar({ trackHomeUrl }: NavbarProps) {
+const MARKETING_CTA_PATHS = new Set([
+  "/",
+  "/advisory",
+  "/insights",
+  "/privacy",
+  "/terms",
+])
+
+export default function Navbar({ trackHomeUrl, trackSignUpUrl }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -86,7 +96,7 @@ export default function Navbar({ trackHomeUrl }: NavbarProps) {
   const baseNavItems = [
     { name: "Home", href: "/", icon: Home },
     { name: "Insights", href: "/insights", icon: BarChart3 },
-    { name: "Membership", href: "/membership", icon: Layers },
+    { name: "Advisory", href: "/advisory", icon: Layers },
     ...(trackHomeUrl
       ? [{ name: "Track", href: trackHomeUrl, icon: Wallet }]
       : []),
@@ -130,9 +140,7 @@ export default function Navbar({ trackHomeUrl }: NavbarProps) {
       {/* ================= DESKTOP NAV ================= */}
       <header className="hidden md:flex fixed top-0 left-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto w-full px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="font-semibold text-lg">
-            Position Wise Advisory
-          </Link>
+          <BrandLogoLink href="/" logoClassName="h-8 w-auto" priority />
 
           <nav className="flex items-center gap-8 text-sm">
             {navItems.map((item) => (
@@ -239,9 +247,7 @@ export default function Navbar({ trackHomeUrl }: NavbarProps) {
       {/* ================= MOBILE TOP ================= */}
       <header className="fixed top-0 left-0 z-[60] w-full border-b border-border bg-background/95 shadow-sm md:hidden">
         <div className="px-6 py-4 flex justify-center">
-          <Link href="/" className="font-semibold">
-            Position Wise Advisory
-          </Link>
+          <BrandLogoLink href="/" logoClassName="h-7 w-auto" />
         </div>
       </header>
 
@@ -302,6 +308,7 @@ export default function Navbar({ trackHomeUrl }: NavbarProps) {
                         user.user_metadata?.avatar_url ||
                         user.user_metadata?.picture
                       }
+                      alt={user.email ? `${user.email} avatar` : "User avatar"}
                     />
                     <AvatarFallback>
                       {user.email?.charAt(0).toUpperCase()}
@@ -389,6 +396,24 @@ export default function Navbar({ trackHomeUrl }: NavbarProps) {
           )}
         </div>
       </div>
+
+      {!user && MARKETING_CTA_PATHS.has(pathname) ? (
+        <div className="fixed inset-x-4 bottom-22 z-70 md:hidden">
+          <Button asChild size="lg" className="w-full rounded-full shadow-lg">
+            <Link
+              href={
+                pathname === "/advisory" || pathname === "/insights"
+                  ? "/sign-up"
+                  : trackSignUpUrl || "/sign-up"
+              }
+            >
+              {pathname === "/advisory" || pathname === "/insights"
+                ? "Request access"
+                : "Start tracking free"}
+            </Link>
+          </Button>
+        </div>
+      ) : null}
     </>
   );
 }

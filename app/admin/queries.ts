@@ -1,4 +1,4 @@
-import { createSupabaseServerClient, createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCachedCurrentUserAccess } from "@/lib/cached-access"
 import { resolvePaymentProofUrlsForRecords } from "@/lib/payment-proof-storage"
 import type {
@@ -45,33 +45,6 @@ function normalizeProfileRow(profile: ProfileRow): ProfileRow {
     ...profile,
     user_subscriptions: subscriptions.slice(0, 1),
   }
-}
-
-async function fetchAdminEmailsByUserId(profileIds: string[]) {
-  const serviceRoleClient = createSupabaseServiceRoleClient()
-
-  if (!serviceRoleClient || !profileIds.length) {
-    return {} as Record<string, string | null>
-  }
-
-  const uniqueIds = Array.from(new Set(profileIds.map((id) => id.trim()).filter(Boolean)))
-  const emailsByUserId: Record<string, string | null> = {}
-
-  await Promise.all(
-    uniqueIds.map(async (userId) => {
-      const { data, error } = await serviceRoleClient.auth.admin.getUserById(userId)
-      if (error) {
-        console.error(`Admin auth user lookup failed for ${userId}:`, error)
-        emailsByUserId[userId] = null
-        return
-      }
-
-      const email = typeof data.user?.email === "string" ? data.user.email.trim() : ""
-      emailsByUserId[userId] = email || null
-    })
-  )
-
-  return emailsByUserId
 }
 
 export async function fetchAdminProfiles() {
@@ -221,9 +194,6 @@ export async function fetchAdminProfiles() {
   const profiles = Array.from(uniqueProfilesById.values()).sort((a, b) =>
     (a.full_name ?? "").localeCompare(b.full_name ?? "")
   )
-  const emailsByUserId = await fetchAdminEmailsByUserId(
-    profiles.map((profile) => profile.id)
-  )
 
   const plansById = (((plansResult.data as SubscriptionPlanRow[] | null) ?? [])).reduce<
     Record<string, { id?: string; name?: string | null; description?: string | null }>
@@ -283,7 +253,7 @@ export async function fetchAdminProfiles() {
   return profiles.map((profile) =>
     normalizeProfileRow({
       ...profile,
-      email: emailsByUserId[profile.id] ?? null,
+      email: null,
       user_subscriptions: subscriptionsByUserId.has(profile.id)
         ? [subscriptionsByUserId.get(profile.id)!]
         : [],

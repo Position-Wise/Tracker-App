@@ -25,51 +25,14 @@ export default async function InviteTokenPage({ params }: InvitePageProps) {
     redirect(`/sign-in?next=/invite/${encodeURIComponent(inviteToken)}`)
   }
 
-  const { data: inviteRow } = await supabase
-    .from("organization_invites")
-    .select("organization_id,role,expires_at,used_at,email")
-    .eq("token", inviteToken)
-    .maybeSingle()
+  const { error } = await supabase.rpc("accept_organization_invite", {
+    p_token: inviteToken,
+  })
 
-  const organizationId = (inviteRow?.organization_id ?? "").trim()
-  const role = ((inviteRow?.role ?? "member") as string).trim().toLowerCase() || "member"
-
-  if (!organizationId) {
+  if (error) {
+    console.error("Invite accept failed:", error)
     redirect("/dashboard")
   }
-
-  const usedAt = (inviteRow?.used_at ?? "").trim()
-  if (usedAt) {
-    redirect("/dashboard")
-  }
-
-  const expiresAtRaw = (inviteRow?.expires_at ?? "").trim()
-  if (expiresAtRaw) {
-    const expiresAt = new Date(expiresAtRaw)
-    if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() < Date.now()) {
-      redirect("/dashboard")
-    }
-  }
-
-  const inviteEmail = (inviteRow?.email ?? "").trim().toLowerCase()
-  const userEmail = (user.email ?? "").trim().toLowerCase()
-  if (inviteEmail && userEmail && inviteEmail !== userEmail) {
-    redirect("/dashboard")
-  }
-
-  await supabase.from("organization_memberships").upsert(
-    {
-      organization_id: organizationId,
-      user_id: user.id,
-      role,
-    },
-    { onConflict: "organization_id,user_id", ignoreDuplicates: true }
-  )
-
-  await supabase
-    .from("organization_invites")
-    .update({ used_at: new Date().toISOString() })
-    .eq("token", inviteToken)
 
   redirect("/dashboard")
 }

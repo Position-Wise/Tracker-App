@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { PAYMENT_PROOFS_BUCKET } from "@/lib/payment-proof-storage"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
 import {
@@ -21,7 +22,6 @@ import {
 } from "./helpers"
 import {
   resolveCurrentUserIsAdmin,
-  resolveRoleForUser,
   type MinimalDbClient,
 } from "./access"
 
@@ -75,6 +75,7 @@ async function getCallerAccess() {
       supabase,
       callerRole: null as string | null,
       canAccessAdminPanel: false,
+      isOwner: false,
       organizationId: null as string | null,
       userId: null as string | null,
     }
@@ -93,6 +94,7 @@ async function getCallerAccess() {
     supabase,
     callerRole: role ?? null,
     canAccessAdminPanel,
+    isOwner: routeAccess.isOwner,
     organizationId: routeAccess.organizationId,
     userId: user.id,
   }
@@ -359,18 +361,6 @@ export async function updateUserAccessWithResult(
   return updateUserAccessInternal(formData)
 }
 
-type UserDeleteCleanupStep = {
-  table: string
-  column: string
-}
-
-const USER_DELETE_CLEANUP_STEPS: UserDeleteCleanupStep[] = [
-  { table: "trade_usage", column: "user_id" },
-  { table: "broadcast_feedback", column: "user_id" },
-  { table: "user_subscriptions", column: "user_id" },
-  { table: "profiles", column: "id" },
-]
-
 function normalizeUserId(value: string | null | undefined) {
   return (value ?? "").trim()
 }
@@ -385,21 +375,11 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback
 }
 
-function isMissingSchemaError(error: unknown) {
-  const message = getErrorMessage(error, "").toLowerCase()
-  return (
-    (message.includes("relation") && message.includes("does not exist")) ||
-    (message.includes("table") && message.includes("not found")) ||
-    (message.includes("column") && message.includes("does not exist")) ||
-    (message.includes("bucket") && message.includes("not found"))
-  )
-}
-
-async function deletePaymentProofObjectsForUser(
-  db: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+async function deletePaymentProofsViaStorageApi(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   userId: string
 ): Promise<DeleteUserResult> {
-  const bucket = db.storage.from("payment-proofs")
+  const bucket = supabase.storage.from(PAYMENT_PROOFS_BUCKET)
   const limit = 100
   let offset = 0
   const objectPaths: string[] = []
@@ -411,7 +391,8 @@ async function deletePaymentProofObjectsForUser(
     })
 
     if (error) {
-      if (isMissingSchemaError(error)) {
+      const message = getErrorMessage(error, "").toLowerCase()
+      if (message.includes("not found") || message.includes("does not exist")) {
         return { ok: true }
       }
       return {
@@ -445,41 +426,11 @@ async function deletePaymentProofObjectsForUser(
   for (let index = 0; index < objectPaths.length; index += 100) {
     const batch = objectPaths.slice(index, index + 100)
     const { error } = await bucket.remove(batch)
-
     if (error) {
-      if (isMissingSchemaError(error)) {
-        continue
-      }
       return {
         ok: false,
         error: getErrorMessage(error, "Failed to delete user payment proof files."),
       }
-    }
-  }
-
-  return { ok: true }
-}
-
-async function deleteRowsByUserReference(
-  db: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  step: UserDeleteCleanupStep,
-  userId: string
-): Promise<DeleteUserResult> {
-  const { error } = await db
-    .from(step.table)
-    .delete()
-    .eq(step.column, userId)
-
-  if (error) {
-    if (isMissingSchemaError(error)) {
-      return { ok: true }
-    }
-    return {
-      ok: false,
-      error: getErrorMessage(
-        error,
-        `Failed to delete user data from ${step.table}.`
-      ),
     }
   }
 
@@ -492,54 +443,32 @@ export async function deleteUserWithResult(userId: string): Promise<DeleteUserRe
     return { ok: false, error: "Missing user id." }
   }
 
-  const { supabase, canAccessAdminPanel, userId: callerUserId } = await getCallerAccess()
-  if (!canAccessAdminPanel) {
-    return { ok: false, error: "Only admins can remove users." }
+  const { supabase, isOwner, userId: callerUserId } = await getCallerAccess()
+  if (!isOwner) {
+    return {
+      ok: false,
+      error: "Only the platform owner can permanently delete a user.",
+    }
   }
 
   if (callerUserId && callerUserId === targetUserId) {
     return { ok: false, error: "You cannot remove your own account." }
   }
 
-  const db = supabase
-
-  const targetRole = await resolveRoleForUser(
-    targetUserId,
-    db as unknown as MinimalDbClient
-  )
-
-  if (isAdminRole(targetRole)) {
-    return {
-      ok: false,
-      error: "Removing admin accounts is blocked from this panel.",
-    }
-  }
-
-  const storageDeleteResult = await deletePaymentProofObjectsForUser(
-    db as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
-    targetUserId
-  )
+  const storageDeleteResult = await deletePaymentProofsViaStorageApi(supabase, targetUserId)
   if (!storageDeleteResult.ok) {
     return storageDeleteResult
   }
 
-  for (const step of USER_DELETE_CLEANUP_STEPS) {
-    const cleanupResult = await deleteRowsByUserReference(
-      db as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
-      step,
-      targetUserId
-    )
-    if (!cleanupResult.ok) {
-      return cleanupResult
-    }
-  }
+  const { error } = await supabase.rpc("erase_user_by_owner", {
+    p_user_id: targetUserId,
+  })
 
-  const { error: authDeleteError } = await db.auth.admin.deleteUser(targetUserId)
-  if (authDeleteError) {
-    console.warn(
-      "Auth account deletion skipped. Remove user manually from Supabase Auth:",
-      getErrorMessage(authDeleteError, "Insufficient permissions.")
-    )
+  if (error) {
+    return {
+      ok: false,
+      error: getErrorMessage(error, "Failed to delete the user."),
+    }
   }
 
   revalidateAdminRoutes()

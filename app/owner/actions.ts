@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { deleteUserWithResult } from "@/app/admin/actions"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
 import { isReservedSubdomain } from "@/lib/reserved-subdomains"
@@ -172,5 +173,20 @@ export async function promoteUserToOrgAdmin(
 
   revalidatePath("/owner")
   revalidatePath("/admin/plans")
+  return { ok: true }
+}
+
+export async function eraseUser(userId: string): Promise<OwnerActionResult> {
+  const targetUserId = normalizeInput(userId)
+  if (!targetUserId) {
+    return { ok: false, error: "User is required." }
+  }
+
+  const result = await deleteUserWithResult(targetUserId)
+  if (!result.ok) {
+    return result
+  }
+
+  revalidatePath("/owner")
   return { ok: true }
 }

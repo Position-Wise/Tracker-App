@@ -1,11 +1,17 @@
+import type { Metadata } from "next"
 import { ReactNode } from "react"
 import { redirect } from "next/navigation"
+import { noIndexRobots } from "@/lib/seo"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
 import { getSubdomain } from "@/lib/get-subdomain"
 import { TRACK_PLATFORM_SUBDOMAIN } from "@/lib/reserved-subdomains"
 import { resolveRoute } from "@/lib/route-access"
 import { resolveTenantRedirectUrl } from "@/lib/tenant-redirect"
+
+export const metadata: Metadata = {
+  robots: noIndexRobots,
+}
 
 interface ProfileLayoutProps {
   children: ReactNode

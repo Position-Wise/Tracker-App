@@ -1,4 +1,12 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+import { noIndexRobots } from "@/lib/seo"
+
+export const metadata: Metadata = {
+  title: "Access restricted",
+  description: "You do not belong to this organization.",
+  robots: noIndexRobots,
+}
 
 export default function ForbiddenPage() {
   return (
