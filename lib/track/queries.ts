@@ -235,6 +235,28 @@ export async function listCategories(
   return (data ?? []) as ExpenseCategory[]
 }
 
+const EXPENSE_LIST_SELECT =
+  "id,user_id,category_id,source_id,amount,currency,spent_at,note,created_at,updated_at,expense_categories(id,name,slug,icon,is_system),money_sources(id,name)"
+
+export async function listRecentExpenses(
+  supabase: SupabaseServerClient,
+  userId: string,
+  limit = 80
+): Promise<ExpenseWithCategory[]> {
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(EXPENSE_LIST_SELECT)
+    .eq("user_id", userId)
+    .order("spent_at", { ascending: false })
+    .limit(limit)
+
+  if (error) throw new Error(error.message)
+
+  return (data ?? []).map((row) =>
+    mapExpenseRow(row as Parameters<typeof mapExpenseRow>[0])
+  )
+}
+
 export async function listExpensesForMonth(
   supabase: SupabaseServerClient,
   userId: string,
@@ -244,9 +266,7 @@ export async function listExpensesForMonth(
 
   const { data, error } = await supabase
     .from("expenses")
-    .select(
-      "id,user_id,category_id,source_id,amount,currency,spent_at,note,created_at,updated_at,expense_categories(id,name,slug,icon,is_system),money_sources(id,name)"
-    )
+    .select(EXPENSE_LIST_SELECT)
     .eq("user_id", userId)
     .gte("spent_at", startIso)
     .lt("spent_at", endIso)
@@ -467,6 +487,7 @@ export async function getMonthSummary(
     currency,
     total,
     byCategory,
+    expenses,
     recent: expenses.slice(0, 8),
     dailySpend: buildDailySpendSeries(monthKey, expenses),
   }

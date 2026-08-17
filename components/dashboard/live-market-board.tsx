@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import type { MarketSymbolOption } from "@/lib/market-symbols"
 
@@ -237,6 +238,28 @@ export default function LiveMarketBoard({
           </p>
         )}
 
+        {loading && selectedSymbols.length > 0 && quotes.length === 0 ? (
+          <div className="grid gap-4 lg:grid-cols-2" aria-busy="true" aria-label="Loading market quotes">
+            {selectedSymbols.map((symbol) => (
+              <article
+                key={symbol}
+                className="overflow-hidden rounded-3xl bg-[#1f3761] p-5 shadow-md"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <Skeleton className="mt-1 h-8 w-40 bg-white/20 sm:h-9" />
+                  <div className="space-y-2">
+                    <Skeleton className="ml-auto h-6 w-24 bg-white/20" />
+                    <Skeleton className="ml-auto h-4 w-20 bg-white/15" />
+                  </div>
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                  <Skeleton className="h-3 w-32 bg-white/15" />
+                  <Skeleton className="h-3 w-24 bg-white/15" />
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {selectedSymbols.map((symbol) => {
             const quote = quoteBySymbol[symbol]
@@ -252,14 +275,11 @@ export default function LiveMarketBoard({
               >
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-4">
-                    {/* <div className="grid h-20 w-20 shrink-0 grid-cols-2 overflow-hidden rounded-2xl bg-white p-3 sm:h-24 sm:w-24">
-                    </div> */}
                     <h3 className="mt-1 truncate text-2xl font-extrabold  sm:text-3xl">
                       {showName}
                     </h3>
 
                     <div>
-                      {/* <p className="text-xs tracking-[0.2em] text-blue-100/80">{symbol}</p> */}
                       <p className="mt-1 justify-end text-lg text-right font-extrabold sm:text-xl">
                         {formatPrice(quote?.regularMarketPrice ?? null, quote?.currency ?? "INR")}
                       </p>
@@ -277,27 +297,6 @@ export default function LiveMarketBoard({
                     </div>
                   </div>
 
-                  {/* <div className="mt-6 grid grid-cols-2 divide-x divide-white/25 rounded-2xl border border-white/20 bg-white/5">
-                    <div className="p-4 text-center">
-                      <p className="text-xs uppercase tracking-[0.2em] text-blue-100/80">
-                        Updated
-                      </p>
-                      <p className="mt-2 text-lg font-extrabold sm:text-2xl">
-                        {formatUpdateDate(quote?.regularMarketTime ?? null)}
-                      </p>
-                      
-                    </div>
-                    <div className="p-4 text-center">
-                      <p className="text-xs uppercase tracking-[0.2em] text-blue-100/80">
-                        Delay
-                      </p>
-                      <p className="mt-2 text-3xl font-extrabold sm:text-4xl">
-                        {formatDelayMinutes(quote?.regularMarketTime ?? null)}
-                      </p>
-                      
-                    </div>
-                  </div> */}
-
                   <div className="flex justify-between items-center">
                   <p className="text-xs text-blue-100/80">
                     {quote ? formatUpdatedAt(quote.regularMarketTime) : "Waiting for live data..."}
@@ -312,12 +311,7 @@ export default function LiveMarketBoard({
             )
           })}
         </div>
-
-        {loading && selectedSymbols.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            Refreshing quotes...
-          </p>
-        ) : null}
+        )}
 
         <div className="flex flex-wrap justify-between items-center">
         <p className="text-xs text-muted-foreground">

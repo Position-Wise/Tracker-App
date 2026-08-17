@@ -68,6 +68,7 @@ export type MonthSummary = {
   currency: string
   total: number
   byCategory: CategorySpend[]
+  expenses: ExpenseWithCategory[]
   recent: ExpenseWithCategory[]
   dailySpend: DailySpendPoint[]
 }

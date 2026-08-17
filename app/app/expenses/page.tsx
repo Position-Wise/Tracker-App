@@ -1,4 +1,5 @@
 import { TrackExpensesClient } from "@/components/track/track-expenses-client"
+import { parseExpenseGroupBy } from "@/lib/track/expense-browse"
 import { parseMonthKey } from "@/lib/track/month"
 import {
   ensureTrackProfile,
@@ -14,12 +15,26 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 export const dynamic = "force-dynamic"
 
 type PageProps = {
-  searchParams: Promise<{ month?: string }>
+  searchParams: Promise<{
+    month?: string
+    account?: string
+    group?: string
+    q?: string
+    expense?: string
+  }>
 }
 
 export default async function TrackExpensesPage({ searchParams }: PageProps) {
   const params = await searchParams
   const monthKey = parseMonthKey(params.month)
+  const accountFilterId = params.account?.trim() || null
+  const initialGroupBy = params.group
+    ? parseExpenseGroupBy(params.group)
+    : accountFilterId
+      ? "account"
+      : "date"
+  const initialQuery = params.q?.trim() ?? ""
+  const initialExpenseId = params.expense?.trim() || null
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -45,6 +60,10 @@ export default async function TrackExpensesPage({ searchParams }: PageProps) {
       categories={categories}
       income={incomes.map(incomeToActivity)}
       transfers={transfers.map(transferToActivity)}
+      accountFilterId={accountFilterId}
+      initialQuery={initialQuery}
+      initialGroupBy={initialGroupBy}
+      initialExpenseId={initialExpenseId}
     />
   )
 }

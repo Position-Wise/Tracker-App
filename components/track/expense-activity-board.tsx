@@ -1,11 +1,14 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeftRight,
   Calendar,
+  ChevronDown,
+  ChevronUp,
   Pencil,
+  Search,
   Tag,
   TrendingUp,
   Wallet,
@@ -18,8 +21,14 @@ import {
   ExpenseFormDialog,
 } from "@/components/track/expense-form-dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useTrackMoney } from "@/components/track/track-privacy-provider"
-import { toDateInputValue } from "@/lib/track/month"
+import {
+  expenseMatchesQuery,
+  type ExpenseGroupBy,
+  resolveExpenseSourceId,
+} from "@/lib/track/expense-browse"
+import { relativeDayLabel, toDateInputValue } from "@/lib/track/month"
 import type { TrackActivityItem } from "@/lib/track/activity-types"
 import type { ExpenseCategory, ExpenseWithCategory } from "@/lib/track/types"
 import { cn } from "@/lib/utils"
@@ -35,34 +44,49 @@ type ExpenseActivityBoardProps = {
   currency: string
   monthKey?: string
   showSeeAll?: boolean
+  showBrowseControls?: boolean
+  accountFilterId?: string | null
+  onClearAccountFilter?: () => void
+  query?: string
+  onQueryChange?: (query: string) => void
+  groupBy?: ExpenseGroupBy
+  onGroupByChange?: (groupBy: ExpenseGroupBy) => void
+  initialExpenseId?: string | null
+  onSelectedExpenseIdChange?: (id: string | null) => void
   onAddExpense?: () => void
   onAddIncome?: () => void
   onAddTransfer?: () => void
 }
 
-function relativeDayLabel(iso: string) {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return toDateInputValue(iso)
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const target = new Date(date)
-  target.setHours(0, 0, 0, 0)
-  const diffDays = Math.round(
-    (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-  )
-
-  if (diffDays === 0) return "Today"
-  if (diffDays === -1) return "Yesterday"
-  if (diffDays === 1) return "Tomorrow"
-  if (diffDays < -1 && diffDays > -7) return `${Math.abs(diffDays)} days ago`
-  return toDateInputValue(iso)
+function digitsOnly(value: string) {
+  return value.replace(/[^\d.]/g, "")
 }
 
-function tabLabel(tab: ActivityTab) {
-  if (tab === "expenses") return "Recent expenses"
+function activityMatchesQuery(
+  item: TrackActivityItem,
+  query: string,
+  formatAmount: (amount: number, currency: string) => string
+) {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  const formatted = formatAmount(item.amount, item.currency).toLowerCase()
+  const qDigits = digitsOnly(q)
+  return (
+    item.title.toLowerCase().includes(q) ||
+    (item.note ?? "").toLowerCase().includes(q) ||
+    (item.categoryName ?? "").toLowerCase().includes(q) ||
+    String(item.amount).includes(q) ||
+    formatted.includes(q) ||
+    (qDigits.length > 0 && digitsOnly(formatted).includes(qDigits))
+  )
+}
+
+function tabLabel(tab: ActivityTab, groupBy: ExpenseGroupBy) {
   if (tab === "income") return "Recent income"
-  return "Recent transfers"
+  if (tab === "transfers") return "Recent transfers"
+  if (groupBy === "category") return "By category"
+  if (groupBy === "account") return "By account"
+  return "Recent expenses"
 }
 
 export function ExpenseActivityBoard({
@@ -73,15 +97,156 @@ export function ExpenseActivityBoard({
   currency,
   monthKey,
   showSeeAll = false,
+  showBrowseControls = false,
+  accountFilterId = null,
+  onClearAccountFilter,
+  query: queryProp,
+  onQueryChange,
+  groupBy: groupByProp,
+  onGroupByChange,
+  initialExpenseId = null,
+  onSelectedExpenseIdChange,
   onAddExpense,
   onAddIncome,
   onAddTransfer,
 }: ExpenseActivityBoardProps) {
+  const { formatMoney } = useTrackMoney()
+  const { getExpenseSourceId, sourceName } = useTrackLedger()
   const [activityTab, setActivityTab] = useState<ActivityTab>("expenses")
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(initialExpenseId)
   const [editing, setEditing] = useState(false)
+  const [uncontrolledQuery, setUncontrolledQuery] = useState("")
+  const [uncontrolledGroupBy, setUncontrolledGroupBy] = useState<ExpenseGroupBy>(
+    accountFilterId ? "account" : "date"
+  )
+  const query = queryProp ?? uncontrolledQuery
+  const setQuery = onQueryChange ?? setUncontrolledQuery
+  const groupBy = groupByProp ?? uncontrolledGroupBy
+  const setGroupBy = onGroupByChange ?? setUncontrolledGroupBy
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string> | null>(
+    null
+  )
   /** Mobile: list and detail swap; desktop keeps side-by-side. */
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
+
+  const accountFilterName = accountFilterId
+    ? sourceName(accountFilterId)
+    : undefined
+
+  const visibleExpenses = useMemo(() => {
+    const scoped = accountFilterId
+      ? expenses.filter(
+          (expense) =>
+            resolveExpenseSourceId(expense, getExpenseSourceId) ===
+            accountFilterId
+        )
+      : expenses
+    if (!showBrowseControls || !query.trim()) return scoped
+    return scoped.filter((expense) =>
+      expenseMatchesQuery(
+        expense,
+        query,
+        sourceName(resolveExpenseSourceId(expense, getExpenseSourceId)),
+        formatMoney
+      )
+    )
+  }, [
+    accountFilterId,
+    expenses,
+    formatMoney,
+    getExpenseSourceId,
+    query,
+    showBrowseControls,
+    sourceName,
+  ])
+
+  const visibleIncome = useMemo(() => {
+    if (!showBrowseControls || !query.trim()) return income
+    return income.filter((item) => activityMatchesQuery(item, query, formatMoney))
+  }, [formatMoney, income, query, showBrowseControls])
+
+  const visibleTransfers = useMemo(() => {
+    if (!showBrowseControls || !query.trim()) return transfers
+    return transfers.filter((item) =>
+      activityMatchesQuery(item, query, formatMoney)
+    )
+  }, [formatMoney, query, showBrowseControls, transfers])
+
+  const expenseGroups = useMemo(() => {
+    if (activityTab !== "expenses" || groupBy === "date") return []
+    const map = new Map<
+      string,
+      { key: string; label: string; total: number; items: ExpenseWithCategory[] }
+    >()
+    for (const expense of visibleExpenses) {
+      let key: string
+      let label: string
+      if (groupBy === "category") {
+        key = expense.category_id || "none"
+        label = expense.category?.name ?? "Uncategorized"
+      } else {
+        const sourceId = resolveExpenseSourceId(expense, getExpenseSourceId)
+        key = sourceId || "unlinked"
+        label = (sourceId && sourceName(sourceId)) || "Not linked"
+      }
+      const existing = map.get(key)
+      if (existing) {
+        existing.total += expense.amount
+        existing.items.push(expense)
+      } else {
+        map.set(key, { key, label, total: expense.amount, items: [expense] })
+      }
+    }
+    return [...map.values()].sort((a, b) => b.total - a.total)
+  }, [activityTab, getExpenseSourceId, groupBy, sourceName, visibleExpenses])
+
+  const focusExpense = initialExpenseId
+    ? (expenses.find((expense) => expense.id === initialExpenseId) ?? null)
+    : null
+
+  const defaultOpenGroupKey =
+    groupBy === "date"
+      ? null
+      : groupBy === "account" && accountFilterId
+        ? accountFilterId
+        : groupBy === "account" && focusExpense
+          ? resolveExpenseSourceId(focusExpense, getExpenseSourceId) ||
+            "unlinked"
+          : groupBy === "category" && focusExpense
+            ? focusExpense.category_id || "none"
+            : (expenseGroups[0]?.key ?? null)
+
+  const collapsedGroupKeys =
+    collapsedGroups ??
+    (groupBy === "date"
+      ? new Set<string>()
+      : new Set(
+          expenseGroups
+            .map((group) => group.key)
+            .filter((key) => key !== defaultOpenGroupKey)
+        ))
+
+  useEffect(() => {
+    setCollapsedGroups(null)
+  }, [groupBy, accountFilterId])
+
+  function toggleGroup(key: string) {
+    setCollapsedGroups((current) => {
+      const base =
+        current ??
+        (groupBy === "date"
+          ? new Set<string>()
+          : new Set(
+              expenseGroups
+                .map((group) => group.key)
+                .filter((groupKey) => groupKey !== defaultOpenGroupKey)
+            ))
+      const next = new Set(base)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   function changeActivityTab(tab: ActivityTab) {
     setEditing(false)
@@ -92,22 +257,23 @@ export function ExpenseActivityBoard({
   function selectItem(id: string) {
     setSelectedId(id)
     setMobileDetailOpen(true)
+    onSelectedExpenseIdChange?.(id)
   }
 
   useEffect(() => {
     if (activityTab === "expenses") {
-      if (expenses.length === 0) {
+      if (visibleExpenses.length === 0) {
         setSelectedId(null)
         return
       }
       setSelectedId((current) => {
-        if (current && expenses.some((e) => e.id === current)) return current
-        return expenses[0]?.id ?? null
+        if (current && visibleExpenses.some((e) => e.id === current)) return current
+        return visibleExpenses[0]?.id ?? null
       })
       return
     }
 
-    const items = activityTab === "income" ? income : transfers
+    const items = activityTab === "income" ? visibleIncome : visibleTransfers
     if (items.length === 0) {
       setSelectedId(null)
       return
@@ -116,7 +282,7 @@ export function ExpenseActivityBoard({
       if (current && items.some((i) => i.id === current)) return current
       return items[0]?.id ?? null
     })
-  }, [activityTab, expenses, income, transfers])
+  }, [activityTab, visibleExpenses, visibleIncome, visibleTransfers])
 
   const selectedExpense = useMemo(
     () => expenses.find((e) => e.id === selectedId) ?? null,
@@ -131,10 +297,14 @@ export function ExpenseActivityBoard({
 
   const listEmpty =
     activityTab === "expenses"
-      ? expenses.length === 0
+      ? visibleExpenses.length === 0
       : activityTab === "income"
-        ? income.length === 0
-        : transfers.length === 0
+        ? visibleIncome.length === 0
+        : visibleTransfers.length === 0
+
+  const searching = showBrowseControls && query.trim().length > 0
+  const groupedExpenses =
+    activityTab === "expenses" && groupBy !== "date" && visibleExpenses.length > 0
 
   return (
     <section className="track-panel overflow-hidden">
@@ -155,28 +325,90 @@ export function ExpenseActivityBoard({
             mobileDetailOpen && "hidden lg:block"
           )}
         >
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="min-w-0 shrink text-lg font-semibold tracking-tight">
-              {tabLabel(activityTab)}
-            </h2>
-            {showSeeAll && monthKey && activityTab === "expenses" ? (
-              <Button
-                asChild
-                variant="ghost"
-                size="xs"
-                className="text-muted-foreground"
-              >
-                <Link href={`/app/expenses?month=${monthKey}`}>See all</Link>
-              </Button>
+          <div className="mb-3 space-y-3">
+            {showBrowseControls ? (
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search notes, amounts, categories"
+                    className="h-9 rounded-full bg-secondary/60 pl-9"
+                    aria-label="Search expenses"
+                  />
+                </div>
+                {accountFilterId ? (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium">
+                      {accountFilterName ?? "Account"}
+                      {onClearAccountFilter ? (
+                        <button
+                          type="button"
+                          className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
+                          onClick={onClearAccountFilter}
+                          aria-label="Clear account filter"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      ) : null}
+                    </span>
+                  </div>
+                ) : null}
+                {activityTab === "expenses" ? (
+                  <div className="inline-flex w-full rounded-full border border-border bg-secondary/80 p-1">
+                    {(
+                      [
+                        { id: "date", label: "Date" },
+                        { id: "category", label: "Category" },
+                        { id: "account", label: "Account" },
+                      ] as const
+                    ).map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setGroupBy(option.id)}
+                        className={cn(
+                          "flex-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                          groupBy === option.id
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             ) : null}
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="min-w-0 shrink text-lg font-semibold tracking-tight">
+                {tabLabel(activityTab, groupBy)}
+              </h2>
+              {showSeeAll && monthKey && activityTab === "expenses" ? (
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="xs"
+                  className="text-muted-foreground"
+                >
+                  <Link href={`/app/expenses?month=${monthKey}`}>See all</Link>
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           {listEmpty ? (
             <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center">
               <p className="text-sm text-muted-foreground">
-                No {activityTab} this month yet.
+                {searching
+                  ? "No matching items."
+                  : accountFilterId && activityTab === "expenses"
+                    ? "No spends on this account this month."
+                    : `No ${activityTab} this month yet.`}
               </p>
-              {activityTab === "expenses" && onAddExpense ? (
+              {activityTab === "expenses" && onAddExpense && !searching ? (
                 <Button
                   type="button"
                   size="sm"
@@ -186,7 +418,7 @@ export function ExpenseActivityBoard({
                   Add expense
                 </Button>
               ) : null}
-              {activityTab === "income" && onAddIncome ? (
+              {activityTab === "income" && onAddIncome && !searching ? (
                 <Button
                   type="button"
                   size="sm"
@@ -196,7 +428,7 @@ export function ExpenseActivityBoard({
                   Add income
                 </Button>
               ) : null}
-              {activityTab === "transfers" && onAddTransfer ? (
+              {activityTab === "transfers" && onAddTransfer && !searching ? (
                 <Button
                   type="button"
                   size="sm"
@@ -207,29 +439,102 @@ export function ExpenseActivityBoard({
                 </Button>
               ) : null}
             </div>
+          ) : groupedExpenses ? (
+            <ScrollHintList
+              watch={`${groupBy}-${visibleExpenses.length}-${[...collapsedGroupKeys].join(",")}`}
+            >
+              <div className="space-y-4">
+              {expenseGroups.map((group) => {
+                const collapsed = collapsedGroupKeys.has(group.key)
+                return (
+                  <div key={group.key} className="space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.key)}
+                      aria-expanded={!collapsed}
+                      aria-label={
+                        collapsed
+                          ? `Show ${group.label} expenses`
+                          : `Hide ${group.label} expenses`
+                      }
+                      className="flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-secondary/70"
+                    >
+                      {collapsed ? (
+                        <ChevronUp className="size-3.5 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                      )}
+                      <p className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                        {group.label}
+                      </p>
+                      <p className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                        {formatMoney(group.total, currency)}
+                        <span className="ml-1.5 font-normal">
+                          · {group.items.length}
+                        </span>
+                      </p>
+                    </button>
+                    {collapsed ? null : (
+                      <>
+                        {group.key === "unlinked" ? (
+                          <p className="px-1 text-xs text-muted-foreground">
+                            These spends have no account. Open one and assign
+                            it.
+                          </p>
+                        ) : null}
+                        <ul className="space-y-1.5">
+                          {group.items.map((expense) => (
+                            <ExpenseListRow
+                              key={expense.id}
+                              expense={expense}
+                              currency={currency}
+                              active={expense.id === selectedId}
+                              onSelect={() => selectItem(expense.id)}
+                            />
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
+              </div>
+            </ScrollHintList>
           ) : activityTab === "expenses" ? (
-            <ul className="max-h-[min(28rem,60vh)] min-w-0 space-y-1.5 overflow-y-auto overscroll-contain pr-1 lg:max-h-112">
-              {expenses.map((expense) => (
-                <ExpenseListRow
-                  key={expense.id}
-                  expense={expense}
-                  currency={currency}
-                  active={expense.id === selectedId}
-                  onSelect={() => selectItem(expense.id)}
-                />
-              ))}
-            </ul>
+            <ScrollHintList watch={visibleExpenses.length}>
+              <ul className="space-y-1.5">
+                {visibleExpenses.map((expense) => (
+                  <ExpenseListRow
+                    key={expense.id}
+                    expense={expense}
+                    currency={currency}
+                    active={expense.id === selectedId}
+                    onSelect={() => selectItem(expense.id)}
+                  />
+                ))}
+              </ul>
+            </ScrollHintList>
           ) : (
-            <ul className="max-h-[min(28rem,60vh)] min-w-0 space-y-1.5 overflow-y-auto overscroll-contain pr-1 lg:max-h-112">
-              {(activityTab === "income" ? income : transfers).map((item) => (
-                <ActivityListRow
-                  key={item.id}
-                  item={item}
-                  active={item.id === selectedId}
-                  onSelect={() => selectItem(item.id)}
-                />
-              ))}
-            </ul>
+            <ScrollHintList
+              watch={
+                activityTab === "income"
+                  ? visibleIncome.length
+                  : visibleTransfers.length
+              }
+            >
+              <ul className="space-y-1.5">
+                {(activityTab === "income" ? visibleIncome : visibleTransfers).map(
+                  (item) => (
+                    <ActivityListRow
+                      key={item.id}
+                      item={item}
+                      active={item.id === selectedId}
+                      onSelect={() => selectItem(item.id)}
+                    />
+                  )
+                )}
+              </ul>
+            </ScrollHintList>
           )}
         </div>
 
@@ -316,6 +621,62 @@ export function ExpenseActivityBoard({
         />
       ) : null}
     </section>
+  )
+}
+
+function ScrollHintList({
+  children,
+  watch,
+}: {
+  children: React.ReactNode
+  watch?: unknown
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [hasMore, setHasMore] = useState(false)
+
+  const update = useCallback(() => {
+    const el = ref.current
+    if (!el) {
+      setHasMore(false)
+      return
+    }
+    setHasMore(el.scrollHeight - el.scrollTop - el.clientHeight > 12)
+  }, [])
+
+  useLayoutEffect(() => {
+    update()
+    const el = ref.current
+    if (!el) return
+    el.addEventListener("scroll", update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => {
+      el.removeEventListener("scroll", update)
+      observer.disconnect()
+    }
+  }, [update, watch])
+
+  return (
+    <div className="relative min-w-0">
+      <div
+        ref={ref}
+        className="no-scrollbar max-h-[min(28rem,60vh)] overflow-y-auto overscroll-contain lg:max-h-112"
+      >
+        {children}
+      </div>
+      {hasMore ? (
+        <button
+          type="button"
+          className="absolute inset-x-0 bottom-0 z-10 flex justify-center bg-[linear-gradient(to_top,var(--card)_30%,transparent)] pb-0.5 pt-8 text-muted-foreground"
+          onClick={() => {
+            ref.current?.scrollBy({ top: 96, behavior: "smooth" })
+          }}
+          aria-label="Scroll to see more"
+        >
+          <ChevronDown className="size-5 motion-safe:animate-bounce" />
+        </button>
+      ) : null}
+    </div>
   )
 }
 
@@ -568,8 +929,9 @@ function ExpenseDetail({
         {
           icon: Wallet,
           label: "Paid from",
-          value: linkedSource ?? "Not linked yet",
+          value: linkedSource ?? "Assign an account",
           muted: !linkedSource,
+          action: linkedSource ? undefined : onEdit,
         },
       ]}
       onEdit={onEdit}
@@ -684,6 +1046,7 @@ function ActivityDetailShell({
     label: string
     value: string
     muted?: boolean
+    action?: () => void
   }[]
   onEdit?: () => void
   editLabel?: string
@@ -800,14 +1163,16 @@ function DetailCard({
   label,
   value,
   muted,
+  action,
 }: {
   icon: typeof Tag
   label: string
   value: string
   muted?: boolean
+  action?: () => void
 }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3.5">
+  const content = (
+    <>
       <div className="flex items-center gap-2 text-white/50">
         <Icon className="size-3.5" />
         <span className="text-xs font-medium uppercase tracking-wide">
@@ -817,11 +1182,30 @@ function DetailCard({
       <p
         className={cn(
           "mt-2 truncate text-sm font-medium",
-          muted && "text-white/55"
+          muted && "text-white/55",
+          action && "underline decoration-white/30 underline-offset-2"
         )}
       >
         {value}
       </p>
+    </>
+  )
+
+  if (action) {
+    return (
+      <button
+        type="button"
+        onClick={action}
+        className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3.5 text-left transition-colors hover:bg-black/40"
+      >
+        {content}
+      </button>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3.5">
+      {content}
     </div>
   )
 }

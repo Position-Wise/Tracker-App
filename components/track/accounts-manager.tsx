@@ -8,6 +8,7 @@ import { deleteMoneySource } from "@/app/app/actions"
 import { MoneySourceFormDialog } from "@/components/track/money-source-form-dialog"
 import { useTrackLedger } from "@/components/track/track-ledger-provider"
 import { useTrackMoney } from "@/components/track/track-privacy-provider"
+import { TrackAccountRowsSkeleton } from "@/components/loading/track-skeletons"
 import { Button } from "@/components/ui/button"
 import {
   MONEY_SOURCE_KIND_LABEL,
@@ -92,7 +93,7 @@ export function AccountsManager({ embedded = false }: AccountsManagerProps) {
       )}
 
       {!ready ? (
-        <p className="text-sm text-muted-foreground">Loading accounts…</p>
+        <TrackAccountRowsSkeleton count={4} />
       ) : (
         <div className={embedded ? "space-y-5" : "space-y-8"}>
           {grouped.map((group) => (

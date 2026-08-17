@@ -1,3 +1,5 @@
+import { Skeleton } from "@/components/ui/skeleton"
+
 export function PageLoading({ label = "Loading" }: { label?: string }) {
   return (
     <div
@@ -5,12 +7,13 @@ export function PageLoading({ label = "Loading" }: { label?: string }) {
       aria-busy="true"
       aria-label={label}
     >
-      <div className="h-8 w-48 animate-pulse rounded-md bg-muted" />
-      <div className="mt-4 h-4 w-full max-w-xl animate-pulse rounded-md bg-muted" />
-      <div className="mt-2 h-4 w-2/3 animate-pulse rounded-md bg-muted" />
+      <span className="sr-only">{label}</span>
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="mt-4 h-4 w-full max-w-xl" />
+      <Skeleton className="mt-2 h-4 w-2/3" />
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
-        <div className="h-36 animate-pulse rounded-2xl bg-muted" />
-        <div className="h-36 animate-pulse rounded-2xl bg-muted" />
+        <Skeleton className="h-36 rounded-2xl" />
+        <Skeleton className="h-36 rounded-2xl" />
       </div>
     </div>
   )

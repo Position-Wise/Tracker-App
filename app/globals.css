@@ -23,6 +23,7 @@
   --brand-navy-deep: #1e2f4a;
   --brand-navy-panel: #152238;
   --brand-navy-black: #0a0e14;
+  --brand-charcoal: #1A1D29;
 
   --primary: var(--brand-navy);
   --primary-foreground: #ffffff;
@@ -43,32 +44,32 @@
   --destructive: oklch(0.6 0.22 27);
 }
 
-/* Dark mode: black + navy (#2A4064 family) */
+/* Dark mode: charcoal surfaces + navy #2A4064 accents */
 .dark {
   --background: var(--brand-navy-black);
   --foreground: #f5f7fa;
 
-  --card: var(--brand-navy-panel);
+  --card: var(--brand-charcoal);
   --card-foreground: #f5f7fa;
 
-  --popover: var(--brand-navy-panel);
+  --popover: var(--brand-charcoal);
   --popover-foreground: #f5f7fa;
 
   --primary: var(--brand-navy);
   --primary-foreground: #ffffff;
 
-  --secondary: var(--brand-navy-deep);
+  --secondary: color-mix(in srgb, var(--brand-charcoal) 78%, white);
   --secondary-foreground: #f5f7fa;
 
   --accent: var(--brand-navy);
   --accent-foreground: #ffffff;
 
-  --muted: var(--brand-navy-deep);
+  --muted: color-mix(in srgb, var(--brand-charcoal) 82%, black);
   --muted-foreground: #a8b4c7;
 
-  --border: color-mix(in srgb, var(--brand-navy) 40%, transparent);
-  --input: color-mix(in srgb, var(--brand-navy) 55%, transparent);
-  --ring: var(--brand-navy-muted);
+  --border: color-mix(in srgb, var(--brand-charcoal) 70%, white 12%);
+  --input: color-mix(in srgb, var(--brand-charcoal) 65%, white 16%);
+  --ring: var(--brand-navy);
 
   --destructive: oklch(0.7 0.19 22);
 }

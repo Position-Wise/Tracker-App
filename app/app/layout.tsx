@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
+import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { noIndexRobots } from "@/lib/seo"
+import { TrackOverviewSkeleton } from "@/components/loading/track-skeletons"
 import { TrackAppClientShell } from "@/components/track/track-app-client-shell"
 import { getSubdomain } from "@/lib/get-subdomain"
 import { TRACK_PLATFORM_SUBDOMAIN } from "@/lib/reserved-subdomains"
@@ -38,18 +40,35 @@ export default async function TrackAppLayout({ children }: TrackAppLayoutProps) 
     redirect("/sign-in?next=/app")
   }
 
-  const profile = await ensureTrackProfile(supabase, user.id)
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-16 sm:px-6 md:pb-12 md:pt-8">
+      <Suspense fallback={<TrackOverviewSkeleton />}>
+        <TrackAppDataShell userId={user.id}>{children}</TrackAppDataShell>
+      </Suspense>
+    </div>
+  )
+}
+
+async function TrackAppDataShell({
+  userId,
+  children,
+}: {
+  userId: string
+  children: ReactNode
+}) {
+  const supabase = await createSupabaseServerClient()
+  const profile = await ensureTrackProfile(supabase, userId)
   await ensureDefaultMoneySource(
     supabase,
-    user.id,
+    userId,
     profile.preferred_currency
   )
   const [sources, creditLimitPools, categories] = await Promise.all([
-    listMoneySources(supabase, user.id),
-    listCreditLimitPools(supabase, user.id),
-    listCategories(supabase, user.id),
+    listMoneySources(supabase, userId),
+    listCreditLimitPools(supabase, userId),
+    listCategories(supabase, userId),
   ])
-  const balances = await computeSourceBalances(supabase, user.id, sources)
+  const balances = await computeSourceBalances(supabase, userId, sources)
 
   return (
     <TrackAppClientShell
@@ -59,9 +78,7 @@ export default async function TrackAppLayout({ children }: TrackAppLayoutProps) 
       balances={balances}
       categories={categories}
     >
-      <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-16 sm:px-6 md:pb-12 md:pt-8">
-        {children}
-      </div>
+      {children}
     </TrackAppClientShell>
   )
 }

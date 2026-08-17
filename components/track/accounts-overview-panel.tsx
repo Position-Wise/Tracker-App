@@ -1,7 +1,9 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
+import Link from "next/link"
 import {
+  ArrowRight,
   CreditCard,
   Eye,
   EyeOff,
@@ -19,6 +21,7 @@ import { AccountsManager } from "@/components/track/accounts-manager"
 import { MoneySourceFormDialog } from "@/components/track/money-source-form-dialog"
 import { useTrackLedger } from "@/components/track/track-ledger-provider"
 import { useTrackMoney } from "@/components/track/track-privacy-provider"
+import { TrackAccountRowsSkeleton } from "@/components/loading/track-skeletons"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -34,7 +37,9 @@ import {
   type MoneySource,
   type MoneySourceKind,
 } from "@/lib/track/money-sources"
-import type { InsightLedgerPoint } from "@/lib/track/types"
+import type { ExpenseWithCategory, InsightLedgerPoint } from "@/lib/track/types"
+import { buildExpensesHref, resolveExpenseSourceId } from "@/lib/track/expense-browse"
+import { relativeDayLabel, toMonthKey } from "@/lib/track/month"
 import { cn } from "@/lib/utils"
 
 const KIND_ORDER: MoneySourceKind[] = ["bank", "credit_card", "cash"]
@@ -52,9 +57,13 @@ function accountNumberLabel(source: MoneySource) {
 
 export function AccountsOverviewPanel({
   monthKey,
+  expenses = [],
+  recentAcross = [],
   insightLedger = [],
 }: {
   monthKey: string
+  expenses?: ExpenseWithCategory[]
+  recentAcross?: ExpenseWithCategory[]
   insightLedger?: InsightLedgerPoint[]
 }) {
   const {
@@ -134,7 +143,7 @@ export function AccountsOverviewPanel({
 
       <div className="mt-6 flex flex-1 flex-col gap-5">
         {!ready ? (
-          <p className="text-sm text-muted-foreground">Loading accounts…</p>
+          <TrackAccountRowsSkeleton count={4} />
         ) : grouped.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Add a cash wallet, bank, or card to start.
@@ -182,12 +191,15 @@ export function AccountsOverviewPanel({
           if (!next) setSelected(null)
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           {selectedSource ? (
             <AccountDetail
               source={selectedSource}
               balance={sourceBalance(selectedSource.id)}
               currency={currency}
+              monthKey={monthKey}
+              expenses={expenses}
+              recentAcross={recentAcross}
               pools={creditLimitPools}
               creditLimit={cardCreditLimit(selectedSource)}
               onEdit={() => {
@@ -324,7 +336,7 @@ function AccountKindStack({
                   "track-panel-elevated text-foreground",
                 !isTopMost &&
                   isHovered &&
-                  "border border-white/50 bg-white/75 text-foreground shadow-[0_8px_30px_rgba(42,64,100,0.18)] backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-[var(--brand-navy-deep)]/75"
+                  "border border-white/50 bg-white/75 text-foreground shadow-[0_8px_30px_rgba(42,64,100,0.18)] backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-(--brand-charcoal)/80"
               )}
               style={{
                 top: `${index * peekRem}rem`,
@@ -572,6 +584,9 @@ function AccountDetail({
   source,
   balance,
   currency,
+  monthKey,
+  expenses,
+  recentAcross,
   pools,
   creditLimit,
   onEdit,
@@ -580,14 +595,43 @@ function AccountDetail({
   source: MoneySource
   balance: number
   currency: string
+  monthKey: string
+  expenses: ExpenseWithCategory[]
+  recentAcross: ExpenseWithCategory[]
   pools: CreditLimitPool[]
   creditLimit: number | null
   onEdit: () => void
   onDeleted: () => void
 }) {
   const { formatMoney } = useTrackMoney()
+  const { getExpenseSourceId } = useTrackLedger()
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+
+  const monthSpends = useMemo(
+    () =>
+      expenses.filter(
+        (expense) =>
+          resolveExpenseSourceId(expense, getExpenseSourceId) === source.id
+      ),
+    [expenses, getExpenseSourceId, source.id]
+  )
+
+  const recentSpends = useMemo(() => {
+    const pool = recentAcross.length > 0 ? recentAcross : expenses
+    return pool
+      .filter(
+        (expense) =>
+          resolveExpenseSourceId(expense, getExpenseSourceId) === source.id
+      )
+      .slice(0, 5)
+  }, [expenses, getExpenseSourceId, recentAcross, source.id])
+
+  const latest = recentSpends[0]
+  const viewMonth = latest
+    ? toMonthKey(new Date(latest.spent_at))
+    : monthKey
+  const showingOlder = monthSpends.length === 0 && recentSpends.length > 0
 
   const Icon =
     source.kind === "bank"
@@ -638,6 +682,76 @@ function AccountDetail({
               </p>
             ) : null}
           </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium">Recent spends</p>
+          {recentSpends.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              No spends on this account yet.
+            </p>
+          ) : (
+            <>
+              {showingOlder ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  No spends this month · showing latest
+                </p>
+              ) : null}
+              <ul className="mt-2 divide-y divide-border">
+                {recentSpends.map((expense) => (
+                  <li key={expense.id}>
+                    <Link
+                      href={buildExpensesHref({
+                        monthKey: toMonthKey(new Date(expense.spent_at)),
+                        accountId: source.id,
+                        groupBy: "account",
+                        expenseId: expense.id,
+                      })}
+                      className="flex items-center gap-3 py-2.5 transition-colors hover:bg-secondary/50"
+                    >
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-medium">
+                        {(expense.category?.name ?? "?").charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {expense.category?.name ?? "Uncategorized"}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {relativeDayLabel(expense.spent_at)}
+                          {expense.note ? ` · ${expense.note}` : ""}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums">
+                        {formatMoney(
+                          expense.amount,
+                          expense.currency || currency
+                        )}
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {recentSpends.length > 0 ? (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="mt-1 h-8 w-full justify-between rounded-full px-3 text-muted-foreground"
+            >
+              <Link
+                href={buildExpensesHref({
+                  monthKey: viewMonth,
+                  accountId: source.id,
+                  groupBy: "account",
+                })}
+              >
+                View all
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          ) : null}
         </div>
 
         <div className="flex gap-2">

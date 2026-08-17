@@ -30,6 +30,8 @@ type TrackOverviewDashboardProps = {
   expenseTotal: number
   incomeTotal?: number
   byCategory: CategorySpend[]
+  expenses?: ExpenseWithCategory[]
+  recentAcross?: ExpenseWithCategory[]
   recent: ExpenseWithCategory[]
   insightLedger?: InsightLedgerPoint[]
   income?: TrackActivityItem[]
@@ -45,6 +47,8 @@ export function TrackOverviewDashboard({
   expenseTotal,
   incomeTotal = 0,
   byCategory,
+  expenses = [],
+  recentAcross = [],
   recent,
   insightLedger = [],
   income = [],
@@ -193,6 +197,8 @@ export function TrackOverviewDashboard({
 
         <AccountsOverviewPanel
           monthKey={monthKey}
+          expenses={expenses}
+          recentAcross={recentAcross}
           insightLedger={insightLedger}
         />
       </div>
