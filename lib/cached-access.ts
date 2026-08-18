@@ -8,7 +8,7 @@ import {
   resolveCurrentUserAdminState,
   type AccessQueryClient,
 } from "@/lib/current-user-access"
-import { createPaymentProofSignedUrl } from "@/lib/payment-proof-storage"
+import { createPaymentProofSignedUrl } from "@advisory/lib/payment-proof-storage"
 
 export const getCachedSupabaseServerClient = cache(createSupabaseServerClient)
 

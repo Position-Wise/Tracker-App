@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import AskAdminDialog from "@/components/inquiries/ask-admin-dialog"
-import PaymentProofPreview from "@/components/subscription/payment-proof-preview"
+import AskAdminDialog from "@advisory/components/inquiries/ask-admin-dialog"
+import PaymentProofPreview from "@advisory/components/subscription/payment-proof-preview"
 import { Button } from "@/components/ui/button"
-import { TrackProfileForm } from "@/components/track/track-profile-form"
-import { getCurrentUserAccessState } from "@/lib/subscription-access"
+import { TrackProfileForm } from "@track/components/track-profile-form"
+import { getCurrentUserAccessState } from "@advisory/lib/subscription-access"
 import { getCachedCurrentUserAccess } from "@/lib/cached-access"
 import { getSubdomain } from "@/lib/get-subdomain"
 import { TRACK_PLATFORM_SUBDOMAIN } from "@/lib/reserved-subdomains"
@@ -14,14 +14,14 @@ import { resolveTenantRedirectUrl } from "@/lib/tenant-redirect"
 import {
   getAccessStateLabel,
   getMemberHomePathForState,
-} from "@/lib/subscription-status"
-import { toMonthKey } from "@/lib/track/month"
+} from "@advisory/lib/subscription-status"
+import { toMonthKey } from "@track/lib/month"
 import {
   ensureTrackProfile,
   getFirstExpenseAt,
   getMonthSummary,
   listIncomesForMonth,
-} from "@/lib/track/queries"
+} from "@track/lib/queries"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"

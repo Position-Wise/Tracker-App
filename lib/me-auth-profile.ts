@@ -1,4 +1,4 @@
-import type { AccessState, SubscriptionStatus } from "@/lib/subscription-status"
+import type { AccessState, SubscriptionStatus } from "@advisory/lib/subscription-status"
 
 export type MeAuthProfile = {
   role: string | null

@@ -5,11 +5,46 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
 
+/** Public URL → internal `app/{product}/...` path. Folders are `web`, `advisory`, `track` (not route groups). */
+function mapToProduct(prefix: string, publicPaths: string[]) {
+  return publicPaths.flatMap((publicPath) => [
+    { source: publicPath, destination: `${prefix}${publicPath}` },
+    { source: `${publicPath}/:path*`, destination: `${prefix}${publicPath}/:path*` },
+  ])
+}
+
 const nextConfig: NextConfig = {
   // Tenant subdomains in local dev (e.g. acme.localhost:3000)
   allowedDevOrigins: ["*.localhost"],
   async rewrites() {
-    return [{ source: "/favicon.ico", destination: "/icon" }]
+    return [
+      { source: "/favicon.ico", destination: "/icon" },
+      // `/advisory` is the marketing page in `app/web/advisory`. Do not use
+      // `/advisory/:path*` — that would steal `app/advisory/dashboard` etc.
+      { source: "/advisory", destination: "/web/advisory" },
+      { source: "/advisory/opengraph-image", destination: "/web/advisory/opengraph-image" },
+      { source: "/advisory/opengraph-image/:path*", destination: "/web/advisory/opengraph-image/:path*" },
+      ...mapToProduct("/web", ["/insights", "/membership", "/home"]),
+      ...mapToProduct("/advisory", [
+        "/dashboard",
+        "/admin",
+        "/admin-select",
+        "/subscribe",
+        "/waiting",
+        "/wait-approval",
+        "/tips",
+        "/broadcast",
+        "/invite",
+        "/inquiries",
+        "/organization-not-found",
+        "/api/dashboard",
+        "/api/admin",
+        "/api/broadcast-feedback",
+        "/api/trade-usage",
+        "/api/market",
+      ]),
+      ...mapToProduct("/track", ["/app"]),
+    ]
   },
   async headers() {
     return [

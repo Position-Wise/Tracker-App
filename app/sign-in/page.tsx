@@ -10,7 +10,7 @@ import { BrandLogoLink } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { PageLoading } from "@/components/ui/page-loading";
-import { isOnTrackPlatformHost } from "@/lib/track-platform-url";
+import { isOnTrackPlatformHost } from "@track/lib/track-platform-url";
 
 function SignInPageContent() {
   const router = useRouter();

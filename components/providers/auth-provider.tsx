@@ -6,7 +6,7 @@ import type { MeAuthProfile } from "@/lib/me-auth-profile"
 import {
   type AccessState,
   type SubscriptionStatus,
-} from "@/lib/subscription-status"
+} from "@advisory/lib/subscription-status"
 import type { AuthChangeEvent, User } from "@supabase/supabase-js"
 
 type ProfileInfo = {

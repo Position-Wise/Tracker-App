@@ -1,0 +1,91 @@
+import { NextResponse } from "next/server"
+import { resolveCurrentUserIsAdmin, type MinimalDbClient } from "@advisory/admin/access"
+import { getBroadcastSharePath, isShareableBroadcastId } from "@advisory/lib/broadcast-share"
+import {
+  isBroadcastExpired,
+  isPrivateBroadcastAudienceType,
+} from "@advisory/lib/broadcast-audience"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+export const dynamic = "force-dynamic"
+
+function toNullableString(value: unknown) {
+  if (typeof value !== "string") return null
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+function toShareableBroadcast(row: Record<string, unknown> | null) {
+  if (!row) return null
+
+  const id = toNullableString(row.id)
+  const message = toNullableString(row.message)
+  if (!id || !message) return null
+
+  return {
+    id,
+    title: toNullableString(row.title),
+    message,
+    audience: toNullableString(row.audience),
+    audience_type: toNullableString(row.audience_type),
+    broadcast_type: toNullableString(row.broadcast_type),
+    created_at: toNullableString(row.created_at),
+    expires_at: toNullableString(row.expires_at),
+  }
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ broadcastId: string }> }
+) {
+  const { broadcastId } = await params
+  const normalizedBroadcastId = broadcastId.trim()
+
+  if (!isShareableBroadcastId(normalizedBroadcastId)) {
+    return NextResponse.json({ error: "Invalid broadcast id." }, { status: 400 })
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { isAdmin } = await resolveCurrentUserIsAdmin(
+    user.id,
+    supabase as unknown as MinimalDbClient
+  )
+
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const db = supabase
+  const { data } = await db
+    .from("admin_broadcasts")
+    .select("id,title,message,audience,audience_type,broadcast_type,created_at,expires_at")
+    .eq("id", normalizedBroadcastId)
+    .maybeSingle()
+
+  const broadcast = toShareableBroadcast(data as Record<string, unknown> | null)
+
+  if (
+    !broadcast ||
+    isPrivateBroadcastAudienceType(broadcast.audience_type) ||
+    isBroadcastExpired(broadcast.expires_at)
+  ) {
+    return NextResponse.json({ error: "Broadcast not available for sharing." }, { status: 404 })
+  }
+
+  const sharePath = getBroadcastSharePath(broadcast.id)
+  const origin = new URL(request.url).origin
+
+  return NextResponse.json({
+    sharePath,
+    shareUrl: `${origin}${sharePath}`,
+    broadcast,
+  })
+}

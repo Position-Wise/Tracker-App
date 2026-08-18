@@ -1,5 +1,5 @@
 import { headers } from "next/headers"
-import { TrackOverviewSkeleton } from "@/components/loading/track-skeletons"
+import { TrackOverviewSkeleton } from "@track/components/track-skeletons"
 import { PageLoading } from "@/components/ui/page-loading"
 
 export default async function Loading() {

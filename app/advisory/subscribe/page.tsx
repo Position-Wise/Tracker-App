@@ -1,0 +1,189 @@
+import type { Metadata } from "next"
+import { redirect } from "next/navigation"
+import SubscriptionOnboardingFlow from "@advisory/components/subscribe/subscription-onboarding-flow"
+import { getCurrentUserAccessState } from "@advisory/lib/subscription-access"
+import { getCachedCurrentUserAccess } from "@/lib/cached-access"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { noIndexRobots } from "@/lib/seo"
+
+export const metadata: Metadata = {
+  robots: noIndexRobots,
+}
+
+type PlanRow = {
+  id: string
+  name: string | null
+  description?: string | null
+  is_public?: boolean | null
+  price?: number | null
+  plan_type?: string | null
+}
+
+type PlanType = "trader" | "investor" | null
+
+type SubscribePageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+const PLAN_ORDER = ["basic", "pro", "premium"] as const
+
+function normalizePlanKey(value: string | null | undefined) {
+  const normalized = (value ?? "").trim().toLowerCase()
+  if (normalized === "pro" || normalized === "growth") return "pro"
+  if (normalized === "premium" || normalized === "elite") return "premium"
+  return "basic"
+}
+
+function normalizePlanType(value: string | null | undefined): PlanType {
+  const normalized = (value ?? "").trim().toLowerCase()
+  if (normalized === "trader") return "trader"
+  if (normalized === "investor") return "investor"
+  return null
+}
+
+function sortPlans(plans: PlanRow[]) {
+  return [...plans].sort((left, right) => {
+    const leftIndex = PLAN_ORDER.indexOf(normalizePlanKey(left.name))
+    const rightIndex = PLAN_ORDER.indexOf(normalizePlanKey(right.name))
+    return leftIndex - rightIndex
+  })
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return null
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+
+  return parsed.toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+}
+
+export default async function SubscribePage({ searchParams }: SubscribePageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const modeRaw = resolvedSearchParams.mode
+  const mode = Array.isArray(modeRaw) ? modeRaw[0] : modeRaw
+  const flowRaw = resolvedSearchParams.flow
+  const flow = Array.isArray(flowRaw) ? flowRaw[0] : flowRaw
+
+  const access = await getCurrentUserAccessState()
+  const routeAccess = await getCachedCurrentUserAccess()
+
+  if (!access.user) {
+    redirect("/sign-in")
+  }
+
+  if (access.accessState === "approved") {
+    redirect("/dashboard")
+  }
+
+  const flowMode = access.accessState === "blocked" || mode === "edit" ? "edit" : "new"
+  const flowVariant = flow === "payment" ? "payment_only" : "full"
+
+  const db = await createSupabaseServerClient()
+  async function loadPlanRows() {
+    if (routeAccess.organizationId) {
+      const orgPlans = await db
+        .from("subscription_plans")
+        .select("id,name,description,is_public,price,plan_type")
+        .eq("is_public", true)
+        .eq("organization_id", routeAccess.organizationId)
+        .order("name", { ascending: true })
+
+      if (!orgPlans.error && (orgPlans.data?.length ?? 0) > 0) {
+        return orgPlans.data
+      }
+    }
+
+    const globalPlans = await db
+      .from("subscription_plans")
+      .select("id,name,description,is_public,price,plan_type")
+      .eq("is_public", true)
+      .is("organization_id", null)
+      .order("name", { ascending: true })
+
+    if (!globalPlans.error) {
+      return globalPlans.data
+    }
+
+    const legacyFallback = await db
+      .from("subscription_plans")
+      .select("id,name,description,is_public,plan_type")
+      .is("organization_id", null)
+      .order("name", { ascending: true })
+
+    return legacyFallback.data
+  }
+
+  const planRows = await loadPlanRows()
+
+  let visiblePlanRows = sortPlans(
+    ((planRows as PlanRow[] | null) ?? []).filter((plan) => {
+      const normalized = (plan.name ?? "").trim().toLowerCase()
+      if (!normalized) return false
+      if (plan.is_public === false) return false
+      return normalized !== "new" && normalized !== "admin"
+    })
+  )
+
+  if (!access.isAdmin && !routeAccess.isOwner) {
+    visiblePlanRows = visiblePlanRows.filter((plan) => plan.plan_type !== "system")
+  }
+
+  const plans = visiblePlanRows.map((plan) => ({
+    id: plan.id,
+    name: plan.name ?? "Plan",
+    description: plan.description ?? null,
+    price: typeof plan.price === "number" ? plan.price : null,
+    planType: normalizePlanType(plan.plan_type),
+  }))
+
+  const currentPlanId = plans.some((plan) => plan.id === access.planId)
+    ? (access.planId ?? "")
+    : (plans[0]?.id ?? "")
+
+  const currentPlanLabel =
+    plans.find((plan) => plan.id === access.planId)?.name ??
+    (access.planName ? String(access.planName) : null)
+
+  const userName =
+    access.user.user_metadata?.full_name ||
+    access.user.user_metadata?.name ||
+    access.user.email ||
+    "Member"
+
+  const avatarUrl =
+    access.user.user_metadata?.avatar_url ||
+    access.user.user_metadata?.picture ||
+    null
+
+  const { data: paymentQrData } = db.storage
+    .from("PaymentQR")
+    .getPublicUrl("PaymentQR.jpg")
+  const paymentQrUrl = paymentQrData?.publicUrl ?? ""
+  const paymentQrDownloadUrl = paymentQrUrl
+
+  return (
+    <main className="min-h-screen bg-background text-foreground pt-24 pb-20 px-6">
+      <SubscriptionOnboardingFlow
+        mode={flowMode}
+        flowVariant={flowVariant}
+        userId={access.user.id}
+        userName={String(userName)}
+        userEmail={access.user.email ?? ""}
+        avatarUrl={avatarUrl ? String(avatarUrl) : null}
+        plans={plans}
+        initialPlanId={currentPlanId}
+        accessState={access.accessState}
+        isBlocked={access.accessState === "blocked"}
+        currentPlanLabel={currentPlanLabel}
+        currentProofUrl={access.subscription?.payment_proof ?? null}
+        lastSubmittedAt={formatDate(access.subscription?.submitted_at ?? null)}
+        paymentQrDownloadUrl={paymentQrDownloadUrl}
+        paymentQrUrl={paymentQrUrl}
+      />
+    </main>
+  )
+}

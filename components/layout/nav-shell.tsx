@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import Navbar from "@/components/Nav"
-import TrackShell from "@/components/layout/track-shell"
+import TrackShell from "@track/components/track-shell"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 

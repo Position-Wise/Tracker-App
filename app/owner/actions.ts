@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { deleteUserWithResult } from "@/app/admin/actions"
+import { deleteUserWithResult } from "@advisory/admin/actions"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserAccess } from "@/lib/current-user-route-access"
 import { isReservedSubdomain } from "@/lib/reserved-subdomains"
