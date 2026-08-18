@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { LegalDocument } from "@/components/legal/legal-document"
-import { SiteFooter } from "@/components/marketing/site-footer"
+import { SiteFooter } from "@web/components/site-footer"
 import { getCompanyContact } from "@/lib/company"
 import { buildShareMetadata } from "@/lib/seo"
-import { resolveTrackPlatformRedirectUrl } from "@/lib/resolve-track-platform-url"
+import { resolveTrackPlatformRedirectUrl } from "@track/lib/resolve-track-platform-url"
 
 export const metadata: Metadata = buildShareMetadata({
   title: "Terms of use",

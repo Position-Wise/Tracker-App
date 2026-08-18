@@ -16,10 +16,10 @@ import {
   TRACK_PLATFORM_SUBDOMAIN,
 } from "@/lib/reserved-subdomains"
 import { resolveRoute } from "@/lib/route-access"
-import { getProtectedRouteRedirectPath } from "@/lib/subscription-status"
+import { getProtectedRouteRedirectPath } from "@advisory/lib/subscription-status"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { resolveTenantRedirectUrl } from "@/lib/tenant-redirect"
-import { resolveTrackPlatformRedirectUrl } from "@/lib/resolve-track-platform-url"
+import { resolveTrackPlatformRedirectUrl } from "@track/lib/resolve-track-platform-url"
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
 

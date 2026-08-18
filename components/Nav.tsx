@@ -26,7 +26,7 @@ import {
 import {
   getAccessStateFromStatus,
   getMemberHomePathForState,
-} from "@/lib/subscription-status";
+} from "@advisory/lib/subscription-status";
 
 import {
   DropdownMenu,

@@ -5,7 +5,7 @@ import {
   normalizeSubscriptionStatus,
   type AccessState,
   type SubscriptionStatus,
-} from "@/lib/subscription-status"
+} from "@advisory/lib/subscription-status"
 
 type PostgrestLikeError = {
   code?: string

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { FormError } from "@/components/ui/form-error"
 import { Input } from "@/components/ui/input"
 import { PageLoading } from "@/components/ui/page-loading"
-import { isOnTrackPlatformHost } from "@/lib/track-platform-url"
+import { isOnTrackPlatformHost } from "@track/lib/track-platform-url"
 
 function SignUpPageContent() {
   const router = useRouter()
