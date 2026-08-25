@@ -68,7 +68,7 @@ export default async function ProfilePage() {
     const trackingSince = firstExpenseAt ?? user.created_at
 
     return (
-      <div className="mx-auto w-full max-w-lg px-6 pb-28 pt-6 md:pb-12 md:pt-24">
+      <div className="mx-auto w-full max-w-lg px-3 pb-28 md:px-6 md:pb-12">
         <TrackProfileForm
           profile={profile}
           displayName={displayName}

@@ -15,16 +15,14 @@ export default async function TrackCategoriesPage() {
   const categories = await listCategories(supabase, user.id)
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-lg space-y-6">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Categories</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Defaults are ready on first use. Add your own when you need them.
         </p>
       </div>
-      <div className="track-panel p-5 sm:p-6">
-        <CategoriesManager categories={categories} />
-      </div>
+      <CategoriesManager categories={categories} />
     </div>
   )
 }

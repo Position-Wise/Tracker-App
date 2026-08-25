@@ -44,6 +44,8 @@ type TransactionFormDialogProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   triggerLabel?: string
+  /** Prefills the date field when creating a new entry. */
+  initialDate?: string
 }
 
 function fieldClassName() {
@@ -58,6 +60,7 @@ export function TransactionFormDialog({
   open: controlledOpen,
   onOpenChange,
   triggerLabel,
+  initialDate,
 }: TransactionFormDialogProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -105,7 +108,7 @@ export function TransactionFormDialog({
     ? toDateInputValue(expense.spent_at)
     : activity
       ? toDateInputValue(activity.occurredAt)
-      : toDateInputValue(new Date().toISOString())
+      : (initialDate ?? toDateInputValue(new Date().toISOString()))
 
   const linkedSourceId =
     expense?.source_id ??
@@ -206,7 +209,11 @@ export function TransactionFormDialog({
               defaultValue={linkedSourceId ?? undefined}
               required
             />
-            <DateNoteFields defaultDate={defaultDate} note={expense?.note} />
+            <DateNoteFields
+              key={defaultDate}
+              defaultDate={defaultDate}
+              note={expense?.note}
+            />
             <LoadingSubmitButton className="w-full" pendingText="Saving...">
               {expense ? "Save changes" : "Add expense"}
             </LoadingSubmitButton>

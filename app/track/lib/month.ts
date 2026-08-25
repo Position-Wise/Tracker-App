@@ -147,3 +147,105 @@ export function dateInputToIso(dateValue: string): string {
   if (!y || !m || !d) return new Date().toISOString()
   return new Date(y, m - 1, d, 12, 0, 0, 0).toISOString()
 }
+
+/** YYYY-MM-DD from a local Date (not UTC). */
+export function toLocalDateKey(date: Date = new Date()): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
+export function parseDateKey(dateKey: string): Date {
+  const [y, m, d] = dateKey.split("-").map(Number)
+  return new Date(y || 1970, (m || 1) - 1, d || 1)
+}
+
+export function dateKeyMonth(dateKey: string): string {
+  return dateKey.slice(0, 7)
+}
+
+export function lastDateKeyOfMonth(monthKey: string): string {
+  const [yRaw, mRaw] = monthKey.split("-")
+  const year = Number(yRaw)
+  const month = Number(mRaw)
+  const last = new Date(year, month, 0).getDate()
+  return `${monthKey}-${String(last).padStart(2, "0")}`
+}
+
+/** Today if month is current, else last day (past) or the 1st (future). */
+export function defaultDayKeyForMonth(
+  monthKey: string,
+  today: Date = new Date()
+): string {
+  const todayKey = toLocalDateKey(today)
+  if (dateKeyMonth(todayKey) === monthKey) return todayKey
+  const todayMonth = toMonthKey(today)
+  if (monthKey < todayMonth) return lastDateKeyOfMonth(monthKey)
+  return `${monthKey}-01`
+}
+
+export function clampDateKeyToMonth(dateKey: string, monthKey: string): string {
+  const first = `${monthKey}-01`
+  const last = lastDateKeyOfMonth(monthKey)
+  if (dateKey < first) return first
+  if (dateKey > last) return last
+  return dateKey
+}
+
+export function shiftDateKey(dateKey: string, days: number): string {
+  const date = parseDateKey(dateKey)
+  date.setDate(date.getDate() + days)
+  return toLocalDateKey(date)
+}
+
+function startOfWeekMonday(date: Date): Date {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const weekday = start.getDay()
+  const diff = weekday === 0 ? -6 : 1 - weekday
+  start.setDate(start.getDate() + diff)
+  return start
+}
+
+export type WeekDayItem = {
+  key: string
+  weekday: string
+  day: number
+  inMonth: boolean
+  isToday: boolean
+}
+
+/** Monday–Sunday week that contains `dateKey`. */
+export function weekDaysContaining(
+  dateKey: string,
+  monthKey: string,
+  today: Date = new Date()
+): WeekDayItem[] {
+  const start = startOfWeekMonday(parseDateKey(dateKey))
+  const todayKey = toLocalDateKey(today)
+  const days: WeekDayItem[] = []
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
+    const key = toLocalDateKey(date)
+    days.push({
+      key,
+      weekday: date.toLocaleDateString("en-IN", { weekday: "short" }),
+      day: date.getDate(),
+      inMonth: dateKeyMonth(key) === monthKey,
+      isToday: key === todayKey,
+    })
+  }
+  return days
+}
+
+export function formatDayHeading(dateKey: string, today: Date = new Date()): string {
+  const todayKey = toLocalDateKey(today)
+  if (dateKey === todayKey) return "Today"
+  if (dateKey === shiftDateKey(todayKey, -1)) return "Yesterday"
+  if (dateKey === shiftDateKey(todayKey, 1)) return "Tomorrow"
+  return parseDateKey(dateKey).toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  })
+}

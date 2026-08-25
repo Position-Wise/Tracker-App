@@ -1,0 +1,227 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
+import { useTrackMoney } from "@track/components/track-privacy-provider";
+import type { CategorySpendSlice } from "@track/lib/expense-browse";
+import { formatDayHeading } from "@track/lib/month";
+import { cn } from "@/lib/utils";
+
+const SLICE_TONES = [
+  "#F4F7FB",
+  "#C5D0DE",
+  "#8FA0B8",
+  "#5CE1E6",
+  "#7B8CFF",
+  "#A78BFA",
+  "#67E8F9",
+];
+
+const MAX_SLICES = 6;
+const EMPTY_RING = [{ value: 1 }];
+
+type Slice = CategorySpendSlice & { color: string; pct: number };
+
+type DaySpendArcProps = {
+  dateKey: string;
+  currency: string;
+  total: number;
+  count: number;
+  slices: CategorySpendSlice[];
+};
+
+function buildSlices(raw: CategorySpendSlice[], total: number): Slice[] {
+  if (total <= 0 || raw.length === 0) return [];
+  const ranked = [...raw];
+  const visible =
+    ranked.length <= MAX_SLICES
+      ? ranked
+      : [
+          ...ranked.slice(0, MAX_SLICES - 1),
+          {
+            categoryId: "other",
+            name: "Other",
+            total: ranked
+              .slice(MAX_SLICES - 1)
+              .reduce((sum, row) => sum + row.total, 0),
+          },
+        ];
+  return visible.map((row, index) => ({
+    ...row,
+    color: SLICE_TONES[index % SLICE_TONES.length],
+    pct: Math.round((row.total / total) * 100),
+  }));
+}
+
+export function DaySpendArc({
+  dateKey,
+  currency,
+  total,
+  count,
+  slices: rawSlices,
+}: DaySpendArcProps) {
+  const { formatMoney } = useTrackMoney();
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const slices = useMemo(
+    () => buildSlices(rawSlices, total),
+    [rawSlices, total],
+  );
+  const active = slices.find((slice) => slice.categoryId === activeId) ?? null;
+  const heading = formatDayHeading(dateKey);
+
+  return (
+    <section className="rounded-[1.75rem] bg-(--brand-navy) p-5 text-white shadow-sm sm:p-6">
+      <div className="flex w-full items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs text-white/50">Visual breakdown</p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight sm:text-xl">
+            See how you spent {heading.toLowerCase()}
+          </h2>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-lg font-semibold leading-tight tracking-tight tabular-nums">
+            {formatMoney(active?.total ?? total, currency)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-white/50">
+            {active
+              ? `${active.name} · ${active.pct}%`
+              : count === 0
+                ? "No spend"
+                : `${count} ${count === 1 ? "expense" : "expenses"}`}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex w-full items-center gap-4 sm:gap-5 lg:gap-8">
+        <div className="relative h-48 w-24 shrink-0 sm:h-40 sm:w-20 lg:hidden">
+          <Donut
+            slices={slices}
+            activeId={activeId}
+            onActiveChange={setActiveId}
+            align="left"
+          />
+        </div>
+        <div className="relative hidden aspect-2/1 w-64 shrink-0 lg:block lg:w-md">
+          <Donut
+            slices={slices}
+            activeId={activeId}
+            onActiveChange={setActiveId}
+            align="top"
+          />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <ul className="w-full space-y-1.5">
+            {slices.length === 0 ? (
+              <li className="text-sm text-white/50">
+                No expenses this day yet.
+              </li>
+            ) : (
+              slices.map((slice) => {
+                const selected = activeId === slice.categoryId;
+                return (
+                  <li key={slice.categoryId} className="w-full">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveId(selected ? null : slice.categoryId)
+                      }
+                      className={cn(
+                        "flex w-full min-w-0 items-center justify-between gap-3 rounded-lg py-0.5 text-left transition-colors",
+                        selected
+                          ? "text-white"
+                          : "text-white/70 hover:text-white",
+                      )}
+                    >
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <span
+                          className="flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-(--brand-navy)"
+                          style={{ backgroundColor: slice.color }}
+                        >
+                          {slice.name.charAt(0)}
+                        </span>
+                        <span className="truncate text-sm">{slice.name}</span>
+                      </span>
+                      <span className="shrink-0 text-right text-sm tabular-nums text-white/80">
+                        {formatMoney(slice.total, currency)}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Donut({
+  slices,
+  activeId,
+  onActiveChange,
+  align,
+}: {
+  slices: Slice[];
+  activeId: string | null;
+  onActiveChange: (id: string | null) => void;
+  align: "left" | "top";
+}) {
+  const pieProps =
+    align === "top"
+      ? { startAngle: 180, endAngle: 0, cx: "50%", cy: "100%" }
+      : { startAngle: 90, endAngle: -90, cx: "0%", cy: "50%" };
+
+  return (
+    <div className="absolute inset-0" role="img" aria-label="Spend by category">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+          {slices.length === 0 ? (
+            <Pie
+              data={EMPTY_RING}
+              dataKey="value"
+              {...pieProps}
+              innerRadius="145%"
+              outerRadius="190%"
+              fill="rgba(255,255,255,0.12)"
+              stroke="none"
+              isAnimationActive={false}
+            />
+          ) : (
+            <Pie
+              data={slices}
+              dataKey="total"
+              nameKey="name"
+              {...pieProps}
+              innerRadius="145%"
+              outerRadius="190%"
+              paddingAngle={slices.length > 1 ? 3 : 0}
+              cornerRadius={6}
+              stroke="none"
+              isAnimationActive
+            >
+              {slices.map((slice) => {
+                const dimmed =
+                  activeId != null && activeId !== slice.categoryId;
+                return (
+                  <Cell
+                    key={slice.categoryId}
+                    fill={slice.color}
+                    fillOpacity={dimmed ? 0.28 : 1}
+                    style={{ cursor: "pointer", outline: "none" }}
+                    onClick={() =>
+                      onActiveChange(
+                        activeId === slice.categoryId ? null : slice.categoryId,
+                      )
+                    }
+                  />
+                );
+              })}
+            </Pie>
+          )}
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
