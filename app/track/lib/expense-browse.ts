@@ -1,3 +1,4 @@
+import { toDateInputValue } from "@track/lib/month"
 import type { ExpenseWithCategory } from "@track/lib/types"
 
 export type ExpenseGroupBy = "date" | "category" | "account"
@@ -62,4 +63,35 @@ export function expenseMatchesQuery(
     formatted.includes(q) ||
     (qDigits.length > 0 && digitsOnly(formatted).includes(qDigits))
   )
+}
+
+export function expenseDateKey(expense: ExpenseWithCategory): string {
+  return toDateInputValue(expense.spent_at)
+}
+
+export function expensesOnDate(
+  expenses: ExpenseWithCategory[],
+  dateKey: string
+): ExpenseWithCategory[] {
+  return expenses.filter((expense) => expenseDateKey(expense) === dateKey)
+}
+
+export type CategorySpendSlice = {
+  categoryId: string
+  name: string
+  total: number
+}
+
+export function spendByCategory(
+  expenses: ExpenseWithCategory[]
+): CategorySpendSlice[] {
+  const map = new Map<string, CategorySpendSlice>()
+  for (const expense of expenses) {
+    const categoryId = expense.category_id || "none"
+    const name = expense.category?.name ?? "Uncategorized"
+    const existing = map.get(categoryId)
+    if (existing) existing.total += expense.amount
+    else map.set(categoryId, { categoryId, name, total: expense.amount })
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total)
 }

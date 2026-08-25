@@ -2,19 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
+import { DaySpendArc } from "@track/components/day-spend-arc"
 import { ExpenseFormDialog } from "@track/components/expense-form-dialog"
 import { ExpensesList } from "@track/components/expenses-list"
 import { MonthSwitcher } from "@track/components/month-switcher"
 import { useTrackLedger } from "@track/components/track-ledger-provider"
 import { useTrackMoney } from "@track/components/track-privacy-provider"
+import { WeekDayStrip } from "@track/components/week-day-strip"
 import { Button } from "@/components/ui/button"
 import type { TrackActivityItem } from "@track/lib/activity-types"
 import {
   buildExpensesHref,
+  expenseDateKey,
   expenseMatchesQuery,
+  expensesOnDate,
   type ExpenseGroupBy,
   resolveExpenseSourceId,
+  spendByCategory,
 } from "@track/lib/expense-browse"
+import { defaultDayKeyForMonth } from "@track/lib/month"
 import type { ExpenseCategory, ExpenseWithCategory } from "@track/lib/types"
 
 type TrackExpensesClientProps = {
@@ -49,8 +55,13 @@ export function TrackExpensesClient({
   const [query, setQuery] = useState(initialQuery)
   const [groupBy, setGroupBy] = useState<ExpenseGroupBy>(initialGroupBy)
   const [expenseId, setExpenseId] = useState<string | null>(initialExpenseId)
+  const [dayKey, setDayKey] = useState(() => defaultDayKeyForMonth(monthKey))
   const { formatMoney } = useTrackMoney()
   const { getExpenseSourceId, sourceName } = useTrackLedger()
+
+  useEffect(() => {
+    setDayKey(defaultDayKeyForMonth(monthKey))
+  }, [monthKey])
 
   const visibleExpenses = useMemo(() => {
     const scoped = accountFilterId
@@ -81,6 +92,29 @@ export function TrackExpensesClient({
   const visibleTotal = visibleExpenses.reduce((sum, row) => sum + row.amount, 0)
   const isFiltered = Boolean(accountFilterId || query.trim())
   const accountName = accountFilterId ? sourceName(accountFilterId) : null
+
+  const accountExpenses = useMemo(() => {
+    if (!accountFilterId) return expenses
+    return expenses.filter(
+      (expense) =>
+        resolveExpenseSourceId(expense, getExpenseSourceId) === accountFilterId
+    )
+  }, [accountFilterId, expenses, getExpenseSourceId])
+
+  const dayExpenses = useMemo(
+    () => expensesOnDate(accountExpenses, dayKey),
+    [accountExpenses, dayKey]
+  )
+  const dayTotal = dayExpenses.reduce((sum, row) => sum + row.amount, 0)
+  const daySlices = useMemo(() => spendByCategory(dayExpenses), [dayExpenses])
+  const spendByDay = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const expense of accountExpenses) {
+      const key = expenseDateKey(expense)
+      map.set(key, (map.get(key) ?? 0) + expense.amount)
+    }
+    return map
+  }, [accountExpenses])
 
   useEffect(() => {
     const next = buildExpensesHref({
@@ -122,8 +156,8 @@ export function TrackExpensesClient({
           <MonthSwitcher monthKey={monthKey} basePath="/app/expenses" />
           <Button
             type="button"
-            size="sm"
-            className="rounded-full"
+            size="lg"
+            className="rounded-full py-4"
             onClick={() => setExpenseOpen(true)}
           >
             Add expense
@@ -131,10 +165,26 @@ export function TrackExpensesClient({
         </div>
       </div>
 
+      <WeekDayStrip
+        monthKey={monthKey}
+        selectedKey={dayKey}
+        onSelect={setDayKey}
+        spendByDay={spendByDay}
+      />
+
+      <DaySpendArc
+        dateKey={dayKey}
+        currency={currency}
+        total={dayTotal}
+        count={dayExpenses.length}
+        slices={daySlices}
+      />
+
       <ExpenseFormDialog
         categories={categories}
         open={expenseOpen}
         onOpenChange={setExpenseOpen}
+        initialDate={dayKey}
       />
 
       <ExpensesList

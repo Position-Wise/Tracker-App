@@ -84,6 +84,8 @@ export function TrackExpensesSkeleton() {
           <Skeleton className="h-9 w-28 rounded-full" />
         </div>
       </div>
+      <Skeleton className="h-20 w-full rounded-2xl" />
+      <Skeleton className="h-52 w-full rounded-[1.75rem]" />
       <section className="track-panel space-y-3 p-5 sm:p-6">
         <Skeleton className="h-5 w-36" />
         {Array.from({ length: 8 }).map((_, i) => (
@@ -105,12 +107,26 @@ export function TrackAccountsSkeleton() {
         </div>
         <Skeleton className="h-9 w-28 rounded-full" />
       </div>
+      <section className="track-panel space-y-5 p-5 sm:p-6">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-9 w-40" />
+          <Skeleton className="h-3 w-48" />
+        </div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+          ))}
+        </div>
+      </section>
       {Array.from({ length: 3 }).map((_, group) => (
         <section key={group} className="space-y-3">
           <Skeleton className="h-4 w-20" />
-          {Array.from({ length: 2 }).map((_, i) => (
-            <Skeleton key={i} className="h-[4.25rem] w-full rounded-3xl" />
-          ))}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-36 w-full rounded-3xl" />
+            ))}
+          </div>
         </section>
       ))}
     </div>
@@ -119,27 +135,23 @@ export function TrackAccountsSkeleton() {
 
 export function TrackCategoriesSkeleton() {
   return (
-    <div className="space-y-6" aria-busy="true" aria-label="Loading categories">
+    <div
+      className="mx-auto w-full max-w-lg space-y-6"
+      aria-busy="true"
+      aria-label="Loading categories"
+    >
       <ScreenLabel label="Loading categories" />
       <div className="space-y-2">
         <Skeleton className="h-9 w-44" />
         <Skeleton className="h-4 w-72 max-w-full" />
       </div>
-      <div className="track-panel space-y-8 p-5 sm:p-6">
-        <section className="space-y-3">
-          <Skeleton className="h-4 w-20" />
-          <div className="grid gap-2 sm:grid-cols-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full rounded-2xl" />
-            ))}
+      <div className="space-y-0 divide-y divide-border/70 px-2">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between py-4">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-16" />
           </div>
-        </section>
-        <section className="space-y-3">
-          <Skeleton className="h-4 w-32" />
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-2xl" />
-          ))}
-        </section>
+        ))}
       </div>
     </div>
   )
@@ -148,28 +160,30 @@ export function TrackCategoriesSkeleton() {
 export function TrackProfileSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-lg space-y-6 px-6 pb-28 pt-6 md:pb-12 md:pt-24"
+      className="mx-auto w-full max-w-lg space-y-8 px-3 pb-28 md:px-6 md:pb-12"
       aria-busy="true"
       aria-label="Loading profile"
     >
       <ScreenLabel label="Loading profile" />
-      <div className="flex items-center gap-4">
-        <Skeleton className="size-16 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-4 w-48" />
+      <div>
+        <div className="relative">
+          <Skeleton className="h-[min(42vh,18.5rem)] w-full rounded-b-[999px] rounded-t-none" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
+            <Skeleton className="size-24 rounded-full border-[5px] border-background sm:size-28" />
+          </div>
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Skeleton className="h-20 rounded-2xl" />
-        <Skeleton className="h-20 rounded-2xl" />
-      </div>
-      <div className="space-y-3">
-        <Skeleton className="h-4 w-28" />
-        <Skeleton className="h-10 w-full rounded-md" />
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-10 w-full rounded-md" />
-        <Skeleton className="h-10 w-32 rounded-full" />
+        <div className="mt-16 flex flex-col items-center gap-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-4 w-52" />
+        </div>
+        <div className="mt-8 space-y-0 divide-y divide-border/70 px-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between py-4">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

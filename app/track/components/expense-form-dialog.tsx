@@ -25,6 +25,7 @@ type ExpenseFormDialogProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   kind?: TransactionFormKind
+  initialDate?: string
 }
 
 /** Expense-oriented dialog; pass kind for income/transfer too. */
