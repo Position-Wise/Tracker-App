@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { dateInputToIso, slugifyCategoryName } from "@track/lib/month"
+import { parseCardNetwork } from "@track/lib/money-sources"
 import { ensureTrackProfile } from "@track/lib/queries"
 
 export type TrackActionResult = {
@@ -260,6 +261,18 @@ function parseKind(value: string): "cash" | "bank" | "credit_card" | null {
   return null
 }
 
+function resolveCardNetwork(
+  kind: "cash" | "bank" | "credit_card",
+  formData: FormData
+): { ok: true; value: ReturnType<typeof parseCardNetwork> } | { ok: false; error: string } {
+  const raw = text(formData, "cardNetwork")
+  if (kind !== "credit_card") return { ok: true, value: null }
+  if (!raw) return { ok: true, value: null }
+  const parsed = parseCardNetwork(raw)
+  if (!parsed) return { ok: false, error: "Choose Visa, Mastercard, Amex, or RuPay." }
+  return { ok: true, value: parsed }
+}
+
 export async function createMoneySource(formData: FormData): Promise<TrackActionResult> {
   const kind = parseKind(text(formData, "kind"))
   const name = text(formData, "name")
@@ -277,6 +290,9 @@ export async function createMoneySource(formData: FormData): Promise<TrackAction
   if (!kind || !name || !Number.isFinite(openingBalance)) {
     return { ok: false, error: "Enter a valid account." }
   }
+
+  const cardNetwork = resolveCardNetwork(kind, formData)
+  if (!cardNetwork.ok) return { ok: false, error: cardNetwork.error }
 
   const { supabase, user, error } = await requireTrackUser()
   if (!user || error) return { ok: false, error: error ?? "Sign in required." }
@@ -345,6 +361,7 @@ export async function createMoneySource(formData: FormData): Promise<TrackAction
       opening_balance: openingBalance,
       institution,
       last4,
+      card_network: cardNetwork.value,
       credit_limit: soloCreditLimit,
       credit_limit_pool_id: creditLimitPoolId,
       is_default: (count ?? 0) === 0,
@@ -376,6 +393,9 @@ export async function updateMoneySource(formData: FormData): Promise<TrackAction
   if (!sourceId || !kind || !name || !Number.isFinite(openingBalance)) {
     return { ok: false, error: "Enter a valid account." }
   }
+
+  const cardNetwork = resolveCardNetwork(kind, formData)
+  if (!cardNetwork.ok) return { ok: false, error: cardNetwork.error }
 
   const { supabase, user, error } = await requireTrackUser()
   if (!user || error) return { ok: false, error: error ?? "Sign in required." }
@@ -438,6 +458,7 @@ export async function updateMoneySource(formData: FormData): Promise<TrackAction
       opening_balance: openingBalance,
       institution,
       last4,
+      card_network: cardNetwork.value,
       credit_limit: soloCreditLimit,
       credit_limit_pool_id: creditLimitPoolId,
     })

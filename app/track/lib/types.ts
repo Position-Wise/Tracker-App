@@ -94,6 +94,7 @@ export type MoneySourceRow = {
   opening_balance: number
   institution: string | null
   last4: string | null
+  card_network: string | null
   credit_limit: number | null
   credit_limit_pool_id: string | null
   is_default: boolean

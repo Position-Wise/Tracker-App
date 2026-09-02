@@ -20,7 +20,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  CARD_NETWORKS,
+  CARD_NETWORK_LABEL,
   MONEY_SOURCE_KIND_LABEL,
+  type CardNetwork,
   type MoneySource,
   type MoneySourceKind,
 } from "@track/lib/money-sources"
@@ -50,6 +53,9 @@ export function MoneySourceFormDialog({
   const open = controlledOpen ?? uncontrolledOpen
   const setOpen = onOpenChange ?? setUncontrolledOpen
   const [kind, setKind] = useState<MoneySourceKind>(source?.kind ?? "bank")
+  const [cardNetwork, setCardNetwork] = useState<CardNetwork | null>(
+    source?.cardNetwork ?? null
+  )
   const [limitMode, setLimitMode] = useState<LimitMode>(
     source?.creditLimitPoolId ? "shared" : "own"
   )
@@ -77,6 +83,7 @@ export function MoneySourceFormDialog({
   function handleOpenChange(next: boolean) {
     if (next) {
       setKind(source?.kind ?? "bank")
+      setCardNetwork(source?.cardNetwork ?? null)
       setLimitMode(source?.creditLimitPoolId ? "shared" : "own")
       setPoolChoice(
         source?.creditLimitPoolId ?? (creditLimitPools[0]?.id ?? "__new__")
@@ -88,6 +95,7 @@ export function MoneySourceFormDialog({
   async function handleSubmit(formData: FormData) {
     formData.set("kind", kind)
     if (kind === "credit_card") {
+      if (cardNetwork) formData.set("cardNetwork", cardNetwork)
       formData.set("limitMode", limitMode)
       if (limitMode === "shared") {
         formData.set("creditLimitPoolId", poolChoice)
@@ -204,6 +212,32 @@ export function MoneySourceFormDialog({
                 />
               </div>
             </>
+          ) : null}
+
+          {kind === "credit_card" ? (
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium">Card network</p>
+              <div className="grid grid-cols-2 gap-2">
+                {CARD_NETWORKS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() =>
+                      setCardNetwork((current) =>
+                        current === option ? null : option
+                      )
+                    }
+                    className={
+                      cardNetwork === option
+                        ? "rounded-xl bg-primary px-2 py-2.5 text-center text-xs font-medium text-primary-foreground"
+                        : "rounded-xl border border-border bg-card px-2 py-2.5 text-center text-xs text-muted-foreground hover:bg-secondary"
+                    }
+                  >
+                    {CARD_NETWORK_LABEL[option]}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : null}
 
           {kind === "credit_card" ? (
