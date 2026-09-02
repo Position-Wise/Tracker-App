@@ -20,6 +20,7 @@ import { useTrackMoney } from "@track/components/track-privacy-provider"
 import { TrackAccountRowsSkeleton } from "@track/components/track-skeletons"
 import { Button } from "@/components/ui/button"
 import {
+  CARD_NETWORK_LABEL,
   MONEY_SOURCE_KIND_LABEL,
   type MoneySource,
   type MoneySourceKind,
@@ -314,8 +315,12 @@ function AccountCard({
   const Icon = KIND_ICON[source.kind]
   const isCard = source.kind === "credit_card"
   const number = source.last4 ? `•••• ${source.last4}` : null
+  const metaBits = [
+    source.institution,
+    source.cardNetwork ? CARD_NETWORK_LABEL[source.cardNetwork] : null,
+  ].filter(Boolean)
   const meta =
-    source.institution ||
+    metaBits.join(" · ") ||
     (source.kind === "cash"
       ? "Cash wallet"
       : source.kind === "bank"

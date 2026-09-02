@@ -2,9 +2,10 @@ import type { SupabaseServerClient } from "@/lib/supabase/server"
 import type { TrackActivityItem } from "@track/lib/activity-types"
 import { buildDailySpendSeries, monthRangeBounds } from "@track/lib/month"
 import { insightFetchBounds } from "@track/lib/insight-series"
-import type {
-  CreditLimitPool,
-  MoneySource,
+import {
+  parseCardNetwork,
+  type CreditLimitPool,
+  type MoneySource,
 } from "@track/lib/money-sources"
 import type {
   CreditLimitPoolRow,
@@ -46,6 +47,7 @@ function mapMoneySource(row: MoneySourceRow): MoneySource {
     openingBalance: num(row.opening_balance),
     institution: row.institution,
     last4: row.last4,
+    cardNetwork: parseCardNetwork(row.card_network ?? ""),
     creditLimit: row.credit_limit == null ? null : num(row.credit_limit),
     creditLimitPoolId: row.credit_limit_pool_id ?? null,
     isDefault: row.is_default,
@@ -196,7 +198,7 @@ export async function listMoneySources(
   const { data, error } = await supabase
     .from("money_sources")
     .select(
-      "id,user_id,kind,name,currency,opening_balance,institution,last4,credit_limit,credit_limit_pool_id,is_default,created_at,updated_at"
+      "id,user_id,kind,name,currency,opening_balance,institution,last4,card_network,credit_limit,credit_limit_pool_id,is_default,created_at,updated_at"
     )
     .eq("user_id", userId)
     .order("is_default", { ascending: false })

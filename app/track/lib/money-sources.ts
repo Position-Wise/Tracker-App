@@ -1,5 +1,21 @@
 export type MoneySourceKind = "cash" | "bank" | "credit_card"
 
+export const CARD_NETWORKS = ["visa", "mastercard", "amex", "rupay"] as const
+export type CardNetwork = (typeof CARD_NETWORKS)[number]
+
+export const CARD_NETWORK_LABEL: Record<CardNetwork, string> = {
+  visa: "Visa",
+  mastercard: "Mastercard",
+  amex: "Amex",
+  rupay: "RuPay",
+}
+
+export function parseCardNetwork(value: string): CardNetwork | null {
+  return (CARD_NETWORKS as readonly string[]).includes(value)
+    ? (value as CardNetwork)
+    : null
+}
+
 /** Shared credit limit that one or more cards can join. */
 export type CreditLimitPool = {
   id: string
@@ -18,6 +34,8 @@ export type MoneySource = {
   openingBalance: number
   institution: string | null
   last4: string | null
+  /** Card network when kind is credit_card. */
+  cardNetwork: CardNetwork | null
   /** Solo credit limit when not on a shared pool. */
   creditLimit: number | null
   /** When set, this card uses the pool’s shared limit. */
@@ -99,6 +117,7 @@ export function createDefaultCashWallet(currency: string): MoneySource {
     openingBalance: 0,
     institution: null,
     last4: null,
+    cardNetwork: null,
     creditLimit: null,
     creditLimitPoolId: null,
     isDefault: true,
@@ -113,6 +132,7 @@ export function sourceSubtitle(
   if (source.kind === "credit_card") {
     const bits = [
       source.institution,
+      source.cardNetwork ? CARD_NETWORK_LABEL[source.cardNetwork] : null,
       source.last4 ? `•••• ${source.last4}` : null,
     ].filter(Boolean) as string[]
     if (source.creditLimitPoolId) {
