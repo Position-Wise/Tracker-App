@@ -207,6 +207,57 @@ function startOfWeekMonday(date: Date): Date {
   return start
 }
 
+/** Compact Monday-start weekday letters for month calendars. */
+export const WEEKDAY_LETTERS_MON = ["M", "T", "W", "T", "F", "S", "S"] as const
+
+export type MonthCalendarDay = {
+  key: string
+  day: number
+  inMonth: boolean
+  isToday: boolean
+}
+
+/** Monday-start cells covering `monthKey`, including adjacent-month padding. */
+export function monthCalendarDays(
+  monthKey: string,
+  today: Date = new Date()
+): MonthCalendarDay[] {
+  const first = parseDateKey(`${monthKey}-01`)
+  const start = startOfWeekMonday(first)
+  const last = parseDateKey(lastDateKeyOfMonth(monthKey))
+  const end = startOfWeekMonday(last)
+  end.setDate(end.getDate() + 6)
+
+  const todayKey = toLocalDateKey(today)
+  const days: MonthCalendarDay[] = []
+  const cursor = new Date(start)
+  while (cursor.getTime() <= end.getTime()) {
+    const key = toLocalDateKey(cursor)
+    days.push({
+      key,
+      day: cursor.getDate(),
+      inMonth: dateKeyMonth(key) === monthKey,
+      isToday: key === todayKey,
+    })
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return days
+}
+
+/** YYYY-MM-DD when it belongs to `monthKey`, otherwise null. */
+export function parseDateKeyInMonth(
+  raw: string | null | undefined,
+  monthKey: string
+): string | null {
+  const value = (raw ?? "").trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  if (dateKeyMonth(value) !== monthKey) return null
+  const day = Number(value.slice(8, 10))
+  const last = Number(lastDateKeyOfMonth(monthKey).slice(8, 10))
+  if (!day || day > last) return null
+  return value
+}
+
 export type WeekDayItem = {
   key: string
   weekday: string

@@ -308,7 +308,7 @@ export function ExpenseActivityBoard({
 
   return (
     <section className="track-panel overflow-hidden">
-      <header className="relative flex flex-col items-center gap-3 bg-card px-4 pb-2 sm:px-5">
+      <header className="relative flex flex-col items-center gap-3 px-4 pb-2 sm:px-5">
         <ActivityTabPill
           activityTab={activityTab}
           expenseCount={expenses.length}

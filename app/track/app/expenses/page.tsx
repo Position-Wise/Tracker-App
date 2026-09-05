@@ -1,6 +1,6 @@
 import { TrackExpensesClient } from "@track/components/track-expenses-client"
 import { parseExpenseGroupBy } from "@track/lib/expense-browse"
-import { parseMonthKey } from "@track/lib/month"
+import { parseDateKeyInMonth, parseMonthKey } from "@track/lib/month"
 import {
   ensureTrackProfile,
   incomeToActivity,
@@ -21,6 +21,7 @@ type PageProps = {
     group?: string
     q?: string
     expense?: string
+    day?: string
   }>
 }
 
@@ -35,6 +36,7 @@ export default async function TrackExpensesPage({ searchParams }: PageProps) {
       : "date"
   const initialQuery = params.q?.trim() ?? ""
   const initialExpenseId = params.expense?.trim() || null
+  const initialDayKey = parseDateKeyInMonth(params.day, monthKey)
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -64,6 +66,7 @@ export default async function TrackExpensesPage({ searchParams }: PageProps) {
       initialQuery={initialQuery}
       initialGroupBy={initialGroupBy}
       initialExpenseId={initialExpenseId}
+      initialDayKey={initialDayKey}
     />
   )
 }

@@ -42,11 +42,46 @@
   --ring: var(--brand-navy);
 
   --destructive: oklch(0.6 0.22 27);
+
+  --surface-rib-period: 1.4rem;
+  --surface-rib:
+    radial-gradient(120% 80% at 100% -8%, rgb(255 255 255 / 0.85) 0%, transparent 50%),
+    linear-gradient(
+      108deg,
+      rgb(198 210 224 / 0.42) 0%,
+      rgb(255 255 255 / 0.08) 48%,
+      rgb(255 255 255 / 0.55) 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #e4eaf2 0%,
+      #eef2f7 14%,
+      #ffffff 42%,
+      #f4f7fb 58%,
+      #dfe6ef 82%,
+      #e4eaf2 100%
+    );
+  --surface-frost: rgb(255 255 255 / 0.78);
+  --surface-frost-raised: rgb(255 255 255 / 0.64);
+  --surface-frost-dialog: rgb(255 255 255 / 0.86);
+  --surface-panel-blur: 36px;
+  --surface-panel-saturate: 1.35;
+  --surface-raised-blur: 24px;
+  --surface-raised-saturate: 1.2;
+  --surface-dialog-blur: 28px;
+  --surface-dialog-saturate: 1.2;
+  --surface-panel-border: rgb(255 255 255 / 0.55);
+  --surface-raised-border: rgb(15 23 42 / 0.08);
+  --surface-dialog-border: rgb(15 23 42 / 0.1);
+  --surface-panel-shadow:
+    0 18px 40px -28px rgb(15 23 42 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.7);
+  --surface-dialog-shadow:
+    0 24px 60px -24px rgb(15 23 42 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.7);
 }
 
 /* Dark mode: charcoal surfaces + navy #2A4064 accents */
 .dark {
-  --background: var(--brand-navy-black);
+  --background: #060607;
   --foreground: #f5f7fa;
 
   --card: var(--brand-charcoal);
@@ -72,6 +107,40 @@
   --ring: var(--brand-navy);
 
   --destructive: oklch(0.7 0.19 22);
+
+  --surface-rib:
+    radial-gradient(120% 80% at 100% -8%, rgb(92 96 112 / 0.34) 0%, transparent 48%),
+    linear-gradient(
+      108deg,
+      rgb(0 0 0 / 0.7) 0%,
+      rgb(0 0 0 / 0.18) 46%,
+      rgb(255 255 255 / 0.045) 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #050506 0%,
+      #0c0c0f 14%,
+      #1c1c24 42%,
+      #2c2c36 58%,
+      #16161c 82%,
+      #060607 100%
+    );
+  --surface-frost: rgb(22 24 34 / 0.72);
+  --surface-frost-raised: rgb(32 36 48 / 0.62);
+  --surface-frost-dialog: rgb(18 20 28 / 0.82);
+  --surface-panel-blur: 36px;
+  --surface-panel-saturate: 1.35;
+  --surface-raised-blur: 24px;
+  --surface-raised-saturate: 1.2;
+  --surface-dialog-blur: 28px;
+  --surface-dialog-saturate: 1.2;
+  --surface-panel-border: rgb(255 255 255 / 0.16);
+  --surface-raised-border: rgb(255 255 255 / 0.1);
+  --surface-dialog-border: rgb(255 255 255 / 0.14);
+  --surface-panel-shadow:
+    0 22px 44px -28px rgb(0 0 0 / 0.85), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --surface-dialog-shadow:
+    0 28px 64px -24px rgb(0 0 0 / 0.82), inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
 @theme inline {
@@ -100,13 +169,71 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Track layout panels — keep existing brand colors */
+/* Track layout panels — frosted slabs over the ribbed page wash */
 .track-panel {
-  @apply rounded-3xl border border-border bg-card;
+  @apply rounded-3xl border;
+  position: relative;
+  isolation: isolate;
+  border-color: var(--surface-panel-border);
+  background-color: var(--surface-frost);
+  -webkit-backdrop-filter: blur(var(--surface-panel-blur))
+    saturate(var(--surface-panel-saturate));
+  backdrop-filter: blur(var(--surface-panel-blur))
+    saturate(var(--surface-panel-saturate));
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .track-panel-elevated {
-  @apply rounded-2xl border border-border bg-secondary/60;
+  @apply rounded-2xl border;
+  border-color: var(--surface-raised-border);
+  background-color: var(--surface-frost-raised);
+  -webkit-backdrop-filter: blur(var(--surface-raised-blur))
+    saturate(var(--surface-raised-saturate));
+  backdrop-filter: blur(var(--surface-raised-blur))
+    saturate(var(--surface-raised-saturate));
+}
+
+body.track-app {
+  isolation: isolate;
+  background-color: var(--background);
+}
+
+body.track-app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--background);
+  background-image: var(--surface-rib);
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: 100% 100%, 100% 100%, var(--surface-rib-period) 100%;
+}
+
+body.track-app [data-slot="dialog-content"],
+body.track-app [data-slot="drawer-content"] {
+  border-color: var(--surface-dialog-border);
+  background-color: var(--surface-frost-dialog);
+  box-shadow: var(--surface-dialog-shadow);
+  -webkit-backdrop-filter: blur(var(--surface-dialog-blur))
+    saturate(var(--surface-dialog-saturate));
+  backdrop-filter: blur(var(--surface-dialog-blur))
+    saturate(var(--surface-dialog-saturate));
+}
+
+@media (prefers-contrast: more) {
+  body.track-app::before {
+    background-image: none;
+  }
+
+  .track-panel,
+  .track-panel-elevated,
+  body.track-app [data-slot="dialog-content"],
+  body.track-app [data-slot="drawer-content"] {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--card);
+  }
 }
 
 /* Base */

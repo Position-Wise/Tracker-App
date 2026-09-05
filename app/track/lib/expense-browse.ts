@@ -1,4 +1,4 @@
-import { toDateInputValue } from "@track/lib/month"
+import { dateKeyMonth, toDateInputValue } from "@track/lib/month"
 import type { ExpenseWithCategory } from "@track/lib/types"
 
 export type ExpenseGroupBy = "date" | "category" | "account"
@@ -14,12 +14,14 @@ export function buildExpensesHref({
   groupBy,
   query,
   expenseId,
+  day,
 }: {
   monthKey: string
   accountId?: string | null
   groupBy?: ExpenseGroupBy | null
   query?: string | null
   expenseId?: string | null
+  day?: string | null
 }) {
   const params = new URLSearchParams()
   params.set("month", monthKey)
@@ -28,6 +30,7 @@ export function buildExpensesHref({
   const q = query?.trim()
   if (q) params.set("q", q)
   if (expenseId) params.set("expense", expenseId)
+  if (day && dateKeyMonth(day) === monthKey) params.set("day", day)
   return `/app/expenses?${params.toString()}`
 }
 
@@ -94,4 +97,34 @@ export function spendByCategory(
     else map.set(categoryId, { categoryId, name, total: expense.amount })
   }
   return [...map.values()].sort((a, b) => b.total - a.total)
+}
+
+export type DayCategorySpend = {
+  dateKey: string
+  total: number
+  count: number
+  slices: CategorySpendSlice[]
+}
+
+export function spendByDayWithCategories(
+  expenses: ExpenseWithCategory[]
+): Map<string, DayCategorySpend> {
+  const byDay = new Map<string, ExpenseWithCategory[]>()
+  for (const expense of expenses) {
+    const key = expenseDateKey(expense)
+    const list = byDay.get(key)
+    if (list) list.push(expense)
+    else byDay.set(key, [expense])
+  }
+
+  const result = new Map<string, DayCategorySpend>()
+  for (const [dateKey, list] of byDay) {
+    result.set(dateKey, {
+      dateKey,
+      total: list.reduce((sum, row) => sum + row.amount, 0),
+      count: list.length,
+      slices: spendByCategory(list),
+    })
+  }
+  return result
 }
