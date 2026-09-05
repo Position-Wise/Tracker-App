@@ -12,19 +12,12 @@ import {
 import { useTrackMoney } from "@track/components/track-privacy-provider";
 import type { CategorySpendSlice } from "@track/lib/expense-browse";
 import { formatDayHeading } from "@track/lib/month";
+import {
+  colorSpendSlices,
+  type ColoredSpendSlice,
+} from "@track/lib/spend-slices";
 import { cn } from "@/lib/utils";
 
-const SLICE_TONES = [
-  "#F4F7FB",
-  "#C5D0DE",
-  "#8FA0B8",
-  "#5CE1E6",
-  "#7B8CFF",
-  "#A78BFA",
-  "#67E8F9",
-];
-
-const MAX_SLICES = 6;
 const ARC_CORNER_RADIUS = 6;
 const EMPTY_RING = [{ value: 1 }];
 
@@ -61,8 +54,6 @@ function RoundedArcSector(props: PieSectorShapeProps) {
   );
 }
 
-type Slice = CategorySpendSlice & { color: string; pct: number };
-
 type DaySpendArcProps = {
   dateKey: string;
   currency: string;
@@ -70,29 +61,6 @@ type DaySpendArcProps = {
   count: number;
   slices: CategorySpendSlice[];
 };
-
-function buildSlices(raw: CategorySpendSlice[], total: number): Slice[] {
-  if (total <= 0 || raw.length === 0) return [];
-  const ranked = [...raw];
-  const visible =
-    ranked.length <= MAX_SLICES
-      ? ranked
-      : [
-          ...ranked.slice(0, MAX_SLICES - 1),
-          {
-            categoryId: "other",
-            name: "Other",
-            total: ranked
-              .slice(MAX_SLICES - 1)
-              .reduce((sum, row) => sum + row.total, 0),
-          },
-        ];
-  return visible.map((row, index) => ({
-    ...row,
-    color: SLICE_TONES[index % SLICE_TONES.length],
-    pct: Math.round((row.total / total) * 100),
-  }));
-}
 
 export function DaySpendArc({
   dateKey,
@@ -104,7 +72,7 @@ export function DaySpendArc({
   const { formatMoney } = useTrackMoney();
   const [activeId, setActiveId] = useState<string | null>(null);
   const slices = useMemo(
-    () => buildSlices(rawSlices, total),
+    () => colorSpendSlices(rawSlices, total),
     [rawSlices, total],
   );
   const active = slices.find((slice) => slice.categoryId === activeId) ?? null;
@@ -220,7 +188,7 @@ function Donut({
   onActiveChange,
   align,
 }: {
-  slices: Slice[];
+  slices: ColoredSpendSlice[];
   activeId: string | null;
   onActiveChange: (id: string | null) => void;
   align: "left" | "top";

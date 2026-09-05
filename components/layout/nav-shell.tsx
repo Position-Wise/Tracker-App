@@ -30,11 +30,7 @@ export default function NavShell({
   const pathname = usePathname()
 
   if (product === "track") {
-    return (
-      <ThemeProvider enabled>
-        <TrackShell />
-      </ThemeProvider>
-    )
+    return <TrackShell />
   }
 
   if (!shouldShowAuthenticatedNav(pathname)) {

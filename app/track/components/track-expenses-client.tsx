@@ -35,6 +35,7 @@ type TrackExpensesClientProps = {
   initialQuery?: string
   initialGroupBy?: ExpenseGroupBy
   initialExpenseId?: string | null
+  initialDayKey?: string | null
 }
 
 export function TrackExpensesClient({
@@ -49,19 +50,22 @@ export function TrackExpensesClient({
   initialQuery = "",
   initialGroupBy = "date",
   initialExpenseId = null,
+  initialDayKey = null,
 }: TrackExpensesClientProps) {
   const router = useRouter()
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [query, setQuery] = useState(initialQuery)
   const [groupBy, setGroupBy] = useState<ExpenseGroupBy>(initialGroupBy)
   const [expenseId, setExpenseId] = useState<string | null>(initialExpenseId)
-  const [dayKey, setDayKey] = useState(() => defaultDayKeyForMonth(monthKey))
+  const [dayKey, setDayKey] = useState(
+    () => initialDayKey ?? defaultDayKeyForMonth(monthKey)
+  )
   const { formatMoney } = useTrackMoney()
   const { getExpenseSourceId, sourceName } = useTrackLedger()
 
   useEffect(() => {
-    setDayKey(defaultDayKeyForMonth(monthKey))
-  }, [monthKey])
+    setDayKey(initialDayKey ?? defaultDayKeyForMonth(monthKey))
+  }, [initialDayKey, monthKey])
 
   const visibleExpenses = useMemo(() => {
     const scoped = accountFilterId
@@ -153,7 +157,14 @@ export function TrackExpensesClient({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <MonthSwitcher monthKey={monthKey} basePath="/app/expenses" />
+          <MonthSwitcher
+            monthKey={monthKey}
+            basePath="/app/expenses"
+            expenses={accountExpenses}
+            currency={currency}
+            selectedDayKey={dayKey}
+            onSelectDay={setDayKey}
+          />
           <Button
             type="button"
             size="lg"

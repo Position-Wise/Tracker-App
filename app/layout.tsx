@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { Work_Sans } from "next/font/google";
 import "./globals.css";
 import NavShell from "@/components/layout/nav-shell";
+import { TrackRootProviders } from "@track/components/track-theme";
 import { OrganizationJsonLd } from "@/components/seo/json-ld";
 import { CookieBanner } from "@/components/consent/cookie-banner";
 import { Toaster } from "@/components/ui/sonner";
@@ -39,18 +40,31 @@ export default async function RootLayout({
       <body
         className={
           isTrack
-            ? "min-h-dvh bg-background font-sans text-foreground"
+            ? "track-app min-h-dvh bg-background font-sans text-foreground"
             : "bg-background font-sans text-foreground pt-16 pb-40 md:py-0"
         }
         suppressHydrationWarning
       >
         <OrganizationJsonLd />
-        <NavShell
-          product={product}
-          trackHomeUrl={trackHomeUrl}
-          trackSignUpUrl={trackSignUpUrl}
-        />
-        {children}
+        {isTrack ? (
+          <TrackRootProviders>
+            <NavShell
+              product={product}
+              trackHomeUrl={trackHomeUrl}
+              trackSignUpUrl={trackSignUpUrl}
+            />
+            {children}
+          </TrackRootProviders>
+        ) : (
+          <>
+            <NavShell
+              product={product}
+              trackHomeUrl={trackHomeUrl}
+              trackSignUpUrl={trackSignUpUrl}
+            />
+            {children}
+          </>
+        )}
         <Toaster />
         <CookieBanner />
         <Analytics />

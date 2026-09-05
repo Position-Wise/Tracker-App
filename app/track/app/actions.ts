@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { dateInputToIso, slugifyCategoryName } from "@track/lib/month"
+import { dateInputToIso, parseMonthKey, slugifyCategoryName } from "@track/lib/month"
 import { parseCardNetwork } from "@track/lib/money-sources"
-import { ensureTrackProfile } from "@track/lib/queries"
+import { ensureTrackProfile, listExpensesForMonth } from "@track/lib/queries"
+import type { ExpenseWithCategory } from "@track/lib/types"
 
 export type TrackActionResult = {
   ok: boolean
@@ -131,6 +132,29 @@ export async function deleteExpense(formData: FormData): Promise<TrackActionResu
 
   revalidateTrack()
   return { ok: true }
+}
+
+export async function getExpensesForMonth(monthKey: string): Promise<{
+  ok: boolean
+  error?: string
+  expenses?: ExpenseWithCategory[]
+}> {
+  const { supabase, user, error } = await requireTrackUser()
+  if (!user || error) return { ok: false, error: error ?? "Sign in required." }
+
+  try {
+    const expenses = await listExpensesForMonth(
+      supabase,
+      user.id,
+      parseMonthKey(monthKey)
+    )
+    return { ok: true, expenses }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Could not load expenses.",
+    }
+  }
 }
 
 export async function createCategory(formData: FormData): Promise<TrackActionResult> {

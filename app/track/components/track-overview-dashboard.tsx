@@ -86,7 +86,13 @@ export function TrackOverviewDashboard({
             <h1 className="mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
             Track Finance
             </h1>
-            <MonthSwitcher monthKey={monthKey} basePath="/app" short />
+            <MonthSwitcher
+              monthKey={monthKey}
+              basePath="/app"
+              short
+              expenses={expenses}
+              currency={currency}
+            />
           </div>
 
           <div className="grid gap-5 grid-cols-2 sm:grid-cols-4">
