@@ -59,6 +59,17 @@ export function formatMoney(amount: number, currency = "INR"): string {
   }
 }
 
+/** Split `₹18,065.40` into a large head and a smaller fraction for hero amounts. */
+export function splitFormattedMoney(formatted: string): {
+  head: string
+  fraction: string | null
+} {
+  if (formatted.includes("•")) return { head: formatted, fraction: null }
+  const match = formatted.match(/^(.+?)([.,]\d{1,2})$/)
+  if (!match) return { head: formatted, fraction: null }
+  return { head: match[1], fraction: match[2] }
+}
+
 export function slugifyCategoryName(name: string): string {
   return name
     .trim()

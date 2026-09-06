@@ -28,6 +28,8 @@ export default async function RootLayout({
   const headerStore = await headers()
   const product = headerStore.get("x-product")
   const isTrack = product === "track"
+  const pathname = (headerStore.get("x-pathname") ?? "").split("?")[0]
+  const isTrackProfile = isTrack && pathname === "/profile"
   const [trackHomeUrl, trackSignUpUrl] = isTrack
     ? ["/", "/sign-up"]
     : await Promise.all([
@@ -40,7 +42,7 @@ export default async function RootLayout({
       <body
         className={
           isTrack
-            ? "track-app min-h-dvh bg-background font-sans text-foreground"
+            ? `track-app min-h-dvh bg-background font-sans text-foreground${isTrackProfile ? " track-profile" : ""}`
             : "bg-background font-sans text-foreground pt-16 pb-40 md:py-0"
         }
         suppressHydrationWarning

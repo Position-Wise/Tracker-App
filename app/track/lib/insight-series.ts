@@ -274,3 +274,74 @@ export function buildMonthCompare(
   }
 }
 
+function monthBounds(monthKey: string): { start: Date; end: Date } {
+  const [yRaw, mRaw] = monthKey.split("-")
+  const year = Number(yRaw)
+  const month = Number(mRaw)
+  return {
+    start: new Date(year, month - 1, 1),
+    end: new Date(year, month, 1),
+  }
+}
+
+export function netForMonth(
+  monthKey: string,
+  ledger: InsightLedgerPoint[]
+): number {
+  const { start, end } = monthBounds(monthKey)
+  const startMs = start.getTime()
+  const endMs = end.getTime()
+  let net = 0
+  for (const point of ledger) {
+    const t = new Date(point.at).getTime()
+    if (Number.isNaN(t) || t < startMs || t >= endMs) continue
+    net += point.kind === "income" ? point.amount : -point.amount
+  }
+  return net
+}
+
+/** Month-over-month change in net (income − spend). */
+export function monthNetChangePct(
+  monthKey: string,
+  ledger: InsightLedgerPoint[]
+): number | null {
+  const curr = netForMonth(monthKey, ledger)
+  const prev = netForMonth(shiftMonthKeyLocal(monthKey, -1), ledger)
+  if (prev === 0) return curr === 0 ? null : curr > 0 ? 100 : -100
+  return Math.round(((curr - prev) / Math.abs(prev)) * 100)
+}
+
+export function monthActivityTotals(
+  monthKey: string,
+  ledger: InsightLedgerPoint[]
+): { expense: number; income: number; net: number; activity: number } {
+  const { start, end } = monthBounds(monthKey)
+  const startMs = start.getTime()
+  const endMs = end.getTime()
+  let expense = 0
+  let income = 0
+  for (const point of ledger) {
+    const t = new Date(point.at).getTime()
+    if (Number.isNaN(t) || t < startMs || t >= endMs) continue
+    if (point.kind === "income") income += point.amount
+    else expense += point.amount
+  }
+  return {
+    expense,
+    income,
+    net: income - expense,
+    activity: expense + income,
+  }
+}
+
+export function pctChange(curr: number, prev: number): number | null {
+  if (prev === 0) return curr === 0 ? null : curr > 0 ? 100 : -100
+  return Math.round(((curr - prev) / Math.abs(prev)) * 100)
+}
+
+function shiftMonthKeyLocal(monthKey: string, delta: number): string {
+  const [yRaw, mRaw] = monthKey.split("-")
+  const d = new Date(Number(yRaw), Number(mRaw) - 1 + delta, 1)
+  return toMonthKeyFromDate(d)
+}
+

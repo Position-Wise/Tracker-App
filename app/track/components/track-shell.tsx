@@ -2,16 +2,16 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
   ArrowLeftRight,
+  ChartPie,
   CreditCard,
   LogIn,
   Moon,
   Plus,
   Receipt,
   Sun,
-  Tags,
   TrendingDown,
   TrendingUp,
   User,
@@ -41,7 +41,7 @@ const trackNavLeft = [
 ] as const
 
 const trackNavRight = [
-  { name: "Categories", href: "/app/categories", icon: Tags },
+  { name: "Analytics", href: "/app/analytics", icon: ChartPie },
 ] as const
 
 const quickAddOptions: {
@@ -159,7 +159,7 @@ function TrackProfileMenu() {
             <Link href="/profile">Profile</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/app/categories">Categories</Link>
+            <Link href="/app/analytics">Analytics</Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled={isLoggingOut} onClick={handleLogout}>
@@ -316,6 +316,11 @@ function TrackNavInner() {
   const pathname = usePathname()
   const { user } = useAuth()
   const profileActive = pathname === "/profile"
+
+  useLayoutEffect(() => {
+    document.body.classList.toggle("track-profile", profileActive)
+    return () => document.body.classList.remove("track-profile")
+  }, [profileActive])
 
   return (
     <>

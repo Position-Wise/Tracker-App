@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useState,
@@ -12,21 +13,33 @@ import {
 import { ThemeProvider, useTheme } from "@/components/providers/theme-provider"
 import {
   applyTrackThemeVars,
+  clearStoredTrackTheme,
+  getPresetById,
+  isTrackWashStyle,
+  readStoredTrackTheme,
   resolveTrackSurfaceTokens,
   TRACK_THEME_DEFAULT,
+  TRACK_WASH_DEFAULT,
+  writeStoredTrackTheme,
   type ColorMode,
   type TrackSurfaceTokens,
   type TrackThemeOverride,
   type TrackThemePreset,
+  type TrackWashStyle,
 } from "@track/theme"
 
 type TrackThemeContextValue = {
   mode: ColorMode
   preset: TrackThemePreset
   tokens: TrackSurfaceTokens
+  washStyle: TrackWashStyle
   setPreset: (preset: TrackThemePreset) => void
-  /** Patch the active light/dark tokens. Use for live previews or future user settings. */
-  patchTokens: (patch: Partial<TrackSurfaceTokens>) => void
+  setWashStyle: (style: TrackWashStyle) => void
+  /** Patch tokens. Pass `"all"` to apply the same values to light and dark. */
+  patchTokens: (
+    patch: Partial<TrackSurfaceTokens>,
+    scope?: ColorMode | "all"
+  ) => void
   reset: () => void
 }
 
@@ -45,10 +58,11 @@ export function TrackThemeProvider({
 }) {
   const { theme } = useTheme()
   const mode: ColorMode = theme === "dark" ? "dark" : "light"
-  const [preset, setPreset] = useState<TrackThemePreset>(
-    () => presetProp ?? TRACK_THEME_DEFAULT
-  )
+  const fallbackPreset = presetProp ?? TRACK_THEME_DEFAULT
+  const [preset, setPresetState] = useState<TrackThemePreset>(fallbackPreset)
   const [patch, setPatch] = useState<TrackThemeOverride>({})
+  const [washStyle, setWashStyleState] = useState<TrackWashStyle>(TRACK_WASH_DEFAULT)
+  const [hydrated, setHydrated] = useState(false)
 
   const tokens = useMemo(
     () =>
@@ -60,34 +74,73 @@ export function TrackThemeProvider({
   )
 
   useLayoutEffect(() => {
-    applyTrackThemeVars(document.documentElement, tokens)
-  }, [tokens])
+    const stored = readStoredTrackTheme()
+    if (stored) {
+      const found = getPresetById(stored.presetId)
+      if (found) setPresetState(found)
+      if (stored.patch) setPatch(stored.patch)
+      if (stored.washStyle && isTrackWashStyle(stored.washStyle)) {
+        setWashStyleState(stored.washStyle)
+      }
+    }
+    setHydrated(true)
+  }, [])
+
+  useLayoutEffect(() => {
+    applyTrackThemeVars(document.documentElement, tokens, { mode, washStyle })
+  }, [mode, tokens, washStyle])
+
+  useEffect(() => {
+    if (!hydrated) return
+    writeStoredTrackTheme({ presetId: preset.id, patch, washStyle })
+  }, [hydrated, patch, preset.id, washStyle])
+
+  const setPreset = useCallback((next: TrackThemePreset) => {
+    setPresetState(next)
+    setPatch({})
+  }, [])
 
   const patchTokens = useCallback(
-    (next: Partial<TrackSurfaceTokens>) => {
-      setPatch((prev) => ({
-        ...prev,
-        [mode]: { ...prev[mode], ...next },
-      }))
+    (next: Partial<TrackSurfaceTokens>, scope: ColorMode | "all" = mode) => {
+      setPatch((prev) => {
+        if (scope === "all") {
+          return {
+            light: { ...prev.light, ...next },
+            dark: { ...prev.dark, ...next },
+          }
+        }
+        return {
+          ...prev,
+          [scope]: { ...prev[scope], ...next },
+        }
+      })
     },
     [mode]
   )
 
+  const setWashStyle = useCallback((next: TrackWashStyle) => {
+    setWashStyleState(next)
+  }, [])
+
   const reset = useCallback(() => {
-    setPreset(presetProp ?? TRACK_THEME_DEFAULT)
+    setPresetState(fallbackPreset)
     setPatch({})
-  }, [presetProp])
+    setWashStyleState(TRACK_WASH_DEFAULT)
+    clearStoredTrackTheme()
+  }, [fallbackPreset])
 
   const value = useMemo(
     () => ({
       mode,
       preset,
       tokens,
+      washStyle,
       setPreset,
+      setWashStyle,
       patchTokens,
       reset,
     }),
-    [mode, patchTokens, preset, reset, tokens]
+    [mode, patchTokens, preset, reset, setPreset, setWashStyle, tokens, washStyle]
   )
 
   return (

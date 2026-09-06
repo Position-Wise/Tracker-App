@@ -27,20 +27,18 @@ export function TrackOverviewSkeleton() {
             ))}
           </div>
 
-          <div className="mt-8 space-y-3">
-            <Skeleton className="h-4 w-32" />
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-                <Skeleton className="h-1.5 w-full rounded-full" />
+          <Skeleton className="mt-8 h-4 w-32" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
               </div>
-            ))}
-          </div>
-
+              <Skeleton className="h-1.5 w-full rounded-full" />
+            </div>
+          ))}
           <Skeleton className="mt-8 h-40 w-full rounded-2xl" />
+          <Skeleton className="mt-6 h-4 w-28" />
         </section>
 
         <section className="track-panel flex flex-col p-5 sm:p-6">
@@ -130,56 +128,78 @@ export function TrackAccountsSkeleton() {
   )
 }
 
-export function TrackCategoriesSkeleton() {
+export function TrackAnalyticsSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-lg space-y-6"
+      className="mx-auto w-full max-w-lg space-y-8"
       aria-busy="true"
-      aria-label="Loading categories"
+      aria-label="Loading analytics"
     >
-      <ScreenLabel label="Loading categories" />
+      <ScreenLabel label="Loading analytics" />
+      <div className="relative flex h-10 items-center justify-center">
+        <Skeleton className="absolute left-0 size-9 rounded-full" />
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="absolute right-0 h-9 w-28 rounded-full" />
+      </div>
       <div className="space-y-2">
-        <Skeleton className="h-9 w-44" />
-        <Skeleton className="h-4 w-72 max-w-full" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-12 w-56" />
       </div>
-      <div className="space-y-0 divide-y divide-border/70 px-2">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex items-center justify-between py-4">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-4 w-16" />
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-40" />
+          <div className="grid grid-cols-3 gap-x-2.5 gap-y-3">
+            <Skeleton className="h-14 rounded-2xl" />
+            <Skeleton className="h-14 rounded-2xl" />
+            <Skeleton className="h-14 rounded-2xl" />
           </div>
-        ))}
+          <Skeleton className="mx-auto size-52 rounded-full" />
+          <Skeleton className="h-8 w-40" />
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+            <Skeleton className="h-14 rounded-2xl" />
+            <Skeleton className="h-14 rounded-2xl" />
+            <Skeleton className="h-14 rounded-2xl" />
+            <Skeleton className="h-14 rounded-2xl" />
+          </div>
+        </div>
       </div>
+      <Skeleton className="h-48 w-full rounded-3xl" />
     </div>
   )
 }
 
 export function TrackProfileSkeleton() {
   return (
-    <div
-      className="mx-auto w-full max-w-lg space-y-8 px-3 pb-28 md:px-6 md:pb-12"
-      aria-busy="true"
-      aria-label="Loading profile"
-    >
-      <ScreenLabel label="Loading profile" />
-      <div>
-        <div className="relative">
-          <Skeleton className="h-[min(42vh,18.5rem)] w-full rounded-b-[999px] rounded-t-none" />
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
-            <Skeleton className="size-24 rounded-full border-[5px] border-background sm:size-28" />
-          </div>
-        </div>
-        <div className="mt-16 flex flex-col items-center gap-2">
-          <Skeleton className="h-7 w-40" />
-          <Skeleton className="h-4 w-52" />
-        </div>
-        <div className="mt-8 space-y-0 divide-y divide-border/70 px-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between py-4">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-16" />
+    <div className="min-h-dvh bg-white dark:bg-(--brand-charcoal)">
+      <div
+        className="mx-auto w-full max-w-lg space-y-8 px-3 pb-28 md:px-6 md:pb-12"
+        aria-busy="true"
+        aria-label="Loading profile"
+      >
+        <ScreenLabel label="Loading profile" />
+        <div>
+          <div className="relative">
+            <Skeleton className="h-[min(42vh,18.5rem)] w-full rounded-b-[999px] rounded-t-none" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
+              <Skeleton className="size-24 rounded-full border-[5px] border-background sm:size-28" />
             </div>
-          ))}
+          </div>
+          <div className="mt-16 flex flex-col items-center gap-2">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-52" />
+          </div>
+          <div className="mt-8 space-y-0 divide-y divide-border/70 px-2">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between py-4">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

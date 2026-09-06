@@ -8,6 +8,15 @@ const VIEW = 100
 const CX = 50
 const CY = 50
 
+export function nestedInnerRadius(outerStroke: number, innerStroke: number) {
+  const outerR = (VIEW - outerStroke) / 2
+  return outerR - outerStroke / 2 - innerStroke / 2
+}
+
+export function ringRadiusRatio(viewRadius: number) {
+  return viewRadius / (VIEW / 2)
+}
+
 type DaySpendRingProps = {
   slices: ColoredSpendSlice[]
   total: number
@@ -16,6 +25,13 @@ type DaySpendRingProps = {
   /** Stroke thickness in viewBox units. Default 9. */
   strokeWidth?: number
   trackColor?: string
+  strokeLinecap?: "butt" | "round"
+  /** Optional thin inner ring, e.g. income collector. */
+  innerRing?: {
+    color: string
+    strokeWidth?: number
+    radius?: number
+  }
 }
 
 /**
@@ -28,6 +44,8 @@ export function DaySpendRing({
   className,
   strokeWidth = 9,
   trackColor = "currentColor",
+  strokeLinecap = "butt",
+  innerRing,
 }: DaySpendRingProps) {
   const r = (VIEW - strokeWidth) / 2
   const circumference = 2 * Math.PI * r
@@ -65,6 +83,19 @@ export function DaySpendRing({
           stroke={trackColor}
           strokeWidth={strokeWidth}
         />
+        {innerRing ? (
+          <circle
+            cx={CX}
+            cy={CY}
+            r={
+              innerRing.radius ??
+              nestedInnerRadius(strokeWidth, innerRing.strokeWidth ?? 1.15)
+            }
+            fill="none"
+            stroke={innerRing.color}
+            strokeWidth={innerRing.strokeWidth ?? 1.15}
+          />
+        ) : null}
         {arcs.map((arc) => (
           <circle
             key={arc.id}
@@ -76,7 +107,7 @@ export function DaySpendRing({
             strokeWidth={strokeWidth}
             strokeDasharray={arc.dasharray}
             strokeDashoffset={arc.dashoffset}
-            strokeLinecap="butt"
+            strokeLinecap={strokeLinecap}
             transform={`rotate(-90 ${CX} ${CY})`}
           />
         ))}

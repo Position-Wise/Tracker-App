@@ -667,13 +667,13 @@ function ScrollHintList({
       {hasMore ? (
         <button
           type="button"
-          className="absolute inset-x-0 bottom-0 z-10 flex justify-center bg-[linear-gradient(to_top,var(--card)_30%,transparent)] pb-0.5 pt-8 text-muted-foreground"
+          className="flex w-full items-center justify-center pt-2 text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => {
             ref.current?.scrollBy({ top: 96, behavior: "smooth" })
           }}
           aria-label="Scroll to see more"
         >
-          <ChevronDown className="size-5 motion-safe:animate-bounce" />
+          <ChevronDown className="size-4" />
         </button>
       ) : null}
     </div>
