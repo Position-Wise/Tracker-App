@@ -26,12 +26,6 @@
       "@/*": [
         "./*"
       ],
-      "@web/*": [
-        "./app/web/*"
-      ],
-      "@advisory/*": [
-        "./app/advisory/*"
-      ],
       "@track/*": [
         "./app/track/*"
       ]

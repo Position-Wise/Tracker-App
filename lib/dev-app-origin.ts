@@ -1,6 +1,5 @@
 import { sanitizeAuthNext } from "@/lib/auth-intent"
-import { TRACK_PLATFORM_SUBDOMAIN } from "@/lib/reserved-subdomains"
-import { isLocalDevHostname, parseTenantSlugFromHostHeader } from "@/lib/tenant-host"
+import { isLocalDevHostname } from "@/lib/tenant-host"
 
 const DEFAULT_DEV_PORT = "3000"
 
@@ -30,23 +29,10 @@ export function getOAuthCallbackUrl(next?: string | null): string {
       ? getDevAppOrigin()
       : origin
 
-  const safeNext =
-    sanitizeAuthNext(next) ??
-    (parseTenantSlugFromHostHeader(window.location.host) === TRACK_PLATFORM_SUBDOMAIN
-      ? "/app"
-      : null)
+  const safeNext = sanitizeAuthNext(next) ?? "/app"
   const callback = `${callbackOrigin}/auth/callback`
   if (!safeNext) return callback
   return `${callback}?next=${encodeURIComponent(safeNext)}`
-}
-
-export function parseDevOrigin(): { hostname: string; port: string } {
-  const origin = getDevAppOrigin()
-  const url = new URL(origin)
-  return {
-    hostname: url.hostname,
-    port: url.port || DEFAULT_DEV_PORT,
-  }
 }
 
 /** If a dev redirect would leave localhost, keep path on the current request origin. */

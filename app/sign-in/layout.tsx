@@ -5,7 +5,7 @@ import { buildShareMetadata } from "@/lib/seo"
 export const metadata: Metadata = buildShareMetadata({
   title: "Sign in",
   description:
-    "Sign in to Position Wise Advisory for personalized advisory access or Wise Track.",
+    "Sign in to Wise Track.",
   path: "/sign-in",
 })
 

@@ -80,7 +80,7 @@ export function DaySpendArc({
 
   return (
     <section
-      className="relative overflow-hidden rounded-[1.75rem] p-5 text-white shadow-xl sm:p-6"
+      className="@container relative overflow-hidden rounded-[1.75rem] p-5 text-white shadow-xl sm:p-6"
       style={{
         background: SPEND_ARC_SURFACE.gradient,
         boxShadow: `0 24px 48px -12px ${SPEND_ARC_SURFACE.glow}`,
@@ -116,8 +116,8 @@ export function DaySpendArc({
         </div>
       </div>
 
-      <div className="mt-4 flex w-full items-center gap-4 sm:gap-5 lg:gap-8">
-        <div className="relative h-48 w-24 shrink-0 sm:h-40 sm:w-20 lg:hidden">
+      <div className="mt-4 flex w-full items-center gap-4 sm:gap-5 @2xl:gap-8">
+        <div className="relative h-48 w-24 shrink-0 sm:h-40 sm:w-20 @2xl:hidden">
           <Donut
             slices={slices}
             activeId={activeId}
@@ -125,7 +125,7 @@ export function DaySpendArc({
             align="left"
           />
         </div>
-        <div className="relative hidden aspect-2/1 w-64 shrink-0 lg:block lg:w-md">
+        <div className="relative hidden aspect-2/1 w-64 shrink-0 @2xl:block @2xl:w-md">
           <Donut
             slices={slices}
             activeId={activeId}

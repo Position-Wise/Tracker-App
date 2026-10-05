@@ -79,8 +79,8 @@ export function TrackOverviewDashboard({
         
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <section className="track-panel flex flex-col p-5 sm:p-6">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)] xl:items-start">
+        <section className="@container track-panel flex min-w-0 flex-col p-5 sm:p-6">
           <div className="mb-5 flex justify-between">
             <h1 className="mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
             Track Finance
@@ -94,7 +94,7 @@ export function TrackOverviewDashboard({
             />
           </div>
 
-          <div className="grid gap-5 grid-cols-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-5 @xl:grid-cols-4">
             <Metric
               label="Total expenses"
               value={formatMoney(expenseTotal, currency)}
@@ -140,7 +140,7 @@ export function TrackOverviewDashboard({
             View analytics
           </Link>
 
-          <div className="mt-auto hidden gap-2 pt-8 md:grid md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-auto hidden gap-2 pt-8 md:grid md:grid-cols-2 @3xl:grid-cols-4">
             <ActionTile
               icon={TrendingDown}
               label="Expense"
@@ -175,6 +175,21 @@ export function TrackOverviewDashboard({
           recentAcross={recentAcross}
           insightLedger={insightLedger}
         />
+
+        <div className="min-w-0 lg:col-span-2 xl:col-span-1">
+          <ExpenseActivityBoard
+            expenses={recent}
+            income={monthIncome}
+            transfers={monthTransfers}
+            categories={categories}
+            currency={currency}
+            monthKey={monthKey}
+            showSeeAll
+            onAddExpense={() => setFormKind("expense")}
+            onAddIncome={() => setFormKind("income")}
+            onAddTransfer={() => setFormKind("transfer")}
+          />
+        </div>
       </div>
 
       {formKind ? (
@@ -187,19 +202,6 @@ export function TrackOverviewDashboard({
           }}
         />
       ) : null}
-
-      <ExpenseActivityBoard
-        expenses={recent}
-        income={monthIncome}
-        transfers={monthTransfers}
-        categories={categories}
-        currency={currency}
-        monthKey={monthKey}
-        showSeeAll
-        onAddExpense={() => setFormKind("expense")}
-        onAddIncome={() => setFormKind("income")}
-        onAddTransfer={() => setFormKind("transfer")}
-      />
     </div>
   )
 }

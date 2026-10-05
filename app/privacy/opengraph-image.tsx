@@ -9,6 +9,6 @@ export default function PrivacyOpenGraphImage() {
   return createShareImage({
     kicker: "Privacy",
     title: "How we handle your data.",
-    subtitle: "Account, tracker, and advisory information — kept for the job it serves.",
+    subtitle: "Account and tracker data, kept for the job it serves.",
   })
 }

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ArrowRight, Check, Wallet } from "lucide-react"
 import { BrandLogo } from "@/components/brand/logo"
-import { SiteFooter } from "@web/components/site-footer"
+import { SiteFooter } from "@/components/layout/site-footer"
 import { Button } from "@/components/ui/button"
 
 const points = [
@@ -104,7 +104,7 @@ export function TrackLanding() {
         </div>
       </div>
     </main>
-    <SiteFooter trackHomeUrl="/" className="pb-24 md:pb-0" />
+    <SiteFooter className="pb-24 md:pb-0" />
     </>
   )
 }

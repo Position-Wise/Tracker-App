@@ -1,21 +1,18 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { LegalDocument } from "@/components/legal/legal-document"
-import { SiteFooter } from "@web/components/site-footer"
+import { SiteFooter } from "@/components/layout/site-footer"
 import { getCompanyContact } from "@/lib/company"
 import { buildShareMetadata } from "@/lib/seo"
-import { resolveTrackPlatformRedirectUrl } from "@track/lib/resolve-track-platform-url"
 
 export const metadata: Metadata = buildShareMetadata({
   title: "Terms of use",
-  description:
-    "Terms for using Position Wise Advisory, Wise Track, and related membership access.",
+  description: "Terms for using Wise Track, a personal expense tracker.",
   path: "/terms",
 })
 
-export default async function TermsPage() {
+export default function TermsPage() {
   const contact = getCompanyContact()
-  const trackHomeUrl = await resolveTrackPlatformRedirectUrl("/")
 
   return (
     <>
@@ -23,19 +20,17 @@ export default async function TermsPage() {
         <section>
           <h2>Agreement</h2>
           <p>
-            By using {contact.legalName} websites and apps, including Wise Track,
-            you agree to these terms. If you do not agree, please do not use the
-            service.
+            By using Wise Track, you agree to these terms. If you do not agree,
+            please do not use the service.
           </p>
         </section>
 
         <section>
           <h2>The service</h2>
           <p>
-            Wise Track is a free personal expense tracker. Advisory access is a
-            separate relationship: educational guidance fitted to the information
-            you share. It is not a guarantee of returns, and it is not a
-            substitute for your own decisions about capital.
+            Wise Track is a free personal expense tracker for the money you
+            record. It is a record of what you enter, and it is not financial
+            advice.
           </p>
         </section>
 
@@ -55,22 +50,11 @@ export default async function TermsPage() {
         </section>
 
         <section>
-          <h2>Membership and payments</h2>
-          <p>
-            Paid advisory access, where offered, is reviewed after you submit a
-            request and any required payment proof. Submission is not approval.
-            Refunds, if any, follow the communication we send when a plan is
-            confirmed.
-          </p>
-        </section>
-
-        <section>
           <h2>Liability</h2>
           <p>
-            The site and Wise Track are provided as available. We are not liable
-            for investment outcomes, interruptions, or data you choose to enter.
-            Nothing here creates a fiduciary duty beyond what written membership
-            terms expressly state.
+            Wise Track is provided as available. We are not liable for
+            interruptions or for decisions you make from data you choose to
+            enter.
           </p>
         </section>
 
@@ -99,7 +83,7 @@ export default async function TermsPage() {
           </p>
         </section>
       </LegalDocument>
-      <SiteFooter trackHomeUrl={trackHomeUrl} />
+      <SiteFooter />
     </>
   )
 }

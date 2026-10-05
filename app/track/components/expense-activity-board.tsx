@@ -307,7 +307,7 @@ export function ExpenseActivityBoard({
     activityTab === "expenses" && groupBy !== "date" && visibleExpenses.length > 0
 
   return (
-    <section className="track-panel overflow-hidden">
+    <section className="@container track-panel overflow-hidden">
       <header className="relative flex flex-col items-center gap-3 px-4 pb-2 sm:px-5">
         <ActivityTabPill
           activityTab={activityTab}
@@ -318,11 +318,11 @@ export function ExpenseActivityBoard({
         />
       </header>
 
-      <div className="grid lg:grid-cols-[minmax(280px,0.95fr)_1.15fr]">
+      <div className="grid @2xl:grid-cols-[minmax(280px,0.95fr)_1.15fr]">
         <div
           className={cn(
-            "min-w-0 border-b border-border p-4 sm:p-5 lg:border-b-0",
-            mobileDetailOpen && "hidden lg:block"
+            "min-w-0 border-b border-border p-4 sm:p-5 @2xl:border-b-0",
+            mobileDetailOpen && "hidden @2xl:block"
           )}
         >
           <div className="mb-3 space-y-3">
@@ -540,14 +540,14 @@ export function ExpenseActivityBoard({
 
         <div
           className={cn(
-            "relative flex min-h-0 flex-col bg-(--brand-navy) text-white lg:min-h-88 lg:rounded-l-3xl",
-            mobileDetailOpen ? "flex" : "hidden lg:flex"
+            "relative flex min-h-0 flex-col bg-(--brand-navy) text-white @2xl:min-h-88 @2xl:rounded-l-3xl",
+            mobileDetailOpen ? "flex" : "hidden @2xl:flex"
           )}
         >
           {mobileDetailOpen ? (
             <button
               type="button"
-              className="absolute right-3 top-3 z-10 rounded-full p-2 text-white/60 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+              className="absolute right-3 top-3 z-10 rounded-full p-2 text-white/60 transition-colors hover:bg-white/10 hover:text-white @2xl:hidden"
               onClick={() => setMobileDetailOpen(false)}
               aria-label="Back to list"
             >
@@ -555,7 +555,7 @@ export function ExpenseActivityBoard({
             </button>
           ) : null}
 
-          <div className="flex max-h-[min(36rem,75vh)] min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-4 pb-10 sm:p-5 lg:max-h-none lg:pb-5">
+          <div className="flex max-h-[min(36rem,75vh)] min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-4 pb-10 sm:p-5 @2xl:max-h-none @2xl:pb-5">
             {activityTab === "expenses" && selectedExpense ? (
               <ExpenseDetail
                 expense={selectedExpense}
@@ -660,7 +660,7 @@ function ScrollHintList({
     <div className="relative min-w-0">
       <div
         ref={ref}
-        className="no-scrollbar max-h-[min(28rem,60vh)] overflow-y-auto overscroll-contain lg:max-h-112"
+        className="no-scrollbar max-h-[min(28rem,60vh)] overflow-y-auto overscroll-contain @2xl:max-h-112"
       >
         {children}
       </div>
@@ -1058,7 +1058,7 @@ function ActivityDetailShell({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3 pr-8 lg:pr-0">
+      <div className="flex flex-wrap items-start justify-between gap-3 pr-8 @2xl:pr-0">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate text-lg font-semibold tracking-tight sm:text-xl">

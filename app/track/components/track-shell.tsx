@@ -7,7 +7,9 @@ import {
   ArrowLeftRight,
   ChartPie,
   CreditCard,
+  House,
   LogIn,
+  LogOut,
   Moon,
   Plus,
   Receipt,
@@ -26,6 +28,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -42,6 +45,13 @@ const trackNavLeft = [
 
 const trackNavRight = [
   { name: "Analytics", href: "/app/analytics", icon: ChartPie },
+] as const
+
+const railNav = [
+  { name: "Overview", href: "/app", icon: House, exact: true },
+  { name: "Expenses", href: "/app/expenses", icon: Receipt, exact: false },
+  { name: "Accounts", href: "/app/accounts", icon: Wallet, exact: false },
+  { name: "Analytics", href: "/app/analytics", icon: ChartPie, exact: false },
 ] as const
 
 const quickAddOptions: {
@@ -103,10 +113,43 @@ function ThemeToggle() {
   )
 }
 
-function TrackProfileMenu() {
+function useQuickAddPick() {
+  const pathname = usePathname()
   const router = useRouter()
-  const { user } = useAuth()
+  return (kind: QuickAddKind) => {
+    if (pathname.startsWith("/app")) {
+      requestQuickAdd(kind)
+      return
+    }
+    router.push(`/app?add=${kind}`)
+  }
+}
+
+function useTrackLogout() {
+  const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const logout = async () => {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "global" })
+      if (error) {
+        await supabase.auth.signOut({ scope: "local" })
+      }
+    } catch (logoutError) {
+      console.error("Logout error:", logoutError)
+    }
+    router.replace("/sign-in?next=/app")
+    router.refresh()
+  }
+
+  return { isLoggingOut, logout }
+}
+
+function TrackProfileMenu() {
+  const { user } = useAuth()
+  const { isLoggingOut, logout: handleLogout } = useTrackLogout()
 
   if (!user) {
     return (
@@ -120,21 +163,6 @@ function TrackProfileMenu() {
         </Button>
       </div>
     )
-  }
-
-  const handleLogout = async () => {
-    if (isLoggingOut) return
-    setIsLoggingOut(true)
-    try {
-      const { error } = await supabase.auth.signOut({ scope: "global" })
-      if (error) {
-        await supabase.auth.signOut({ scope: "local" })
-      }
-    } catch (logoutError) {
-      console.error("Logout error:", logoutError)
-    }
-    router.replace("/sign-in?next=/app")
-    router.refresh()
   }
 
   return (
@@ -217,8 +245,7 @@ function DockedNavBar({ children }: { children: React.ReactNode }) {
 }
 
 function TrackMobileQuickAdd() {
-  const pathname = usePathname()
-  const router = useRouter()
+  const pickQuickAdd = useQuickAddPick()
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -248,11 +275,7 @@ function TrackMobileQuickAdd() {
 
   function handlePick(kind: QuickAddKind) {
     setOpen(false)
-    if (pathname.startsWith("/app")) {
-      requestQuickAdd(kind)
-      return
-    }
-    router.push(`/app?add=${kind}`)
+    pickQuickAdd(kind)
   }
 
   return (
@@ -312,6 +335,207 @@ function TrackMobileQuickAdd() {
   )
 }
 
+function RailTooltip({ label }: { label: string }) {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute right-full top-1/2 mr-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background opacity-0 shadow-md transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-data-[state=open]:opacity-0!"
+    >
+      {label}
+    </span>
+  )
+}
+
+const railItemClass =
+  "group relative flex size-11 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60"
+
+function RailLink({
+  href,
+  name,
+  icon: Icon,
+  active,
+}: {
+  href: string
+  name: string
+  icon: typeof Receipt
+  active: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={name}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        railItemClass,
+        active
+          ? "bg-primary text-primary-foreground shadow-[0_8px_20px_-10px_rgba(42,64,100,0.9)]"
+          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+      )}
+    >
+      <Icon className="size-5" />
+      <RailTooltip label={name} />
+    </Link>
+  )
+}
+
+function RailProfileMenu({ active }: { active: boolean }) {
+  const { user } = useAuth()
+  const { isLoggingOut, logout } = useTrackLogout()
+  if (!user) return null
+
+  const name =
+    user.user_metadata?.full_name || user.user_metadata?.name || "Profile"
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Profile menu"
+          className={cn(railItemClass, "p-0.5")}
+        >
+          <Avatar
+            className={cn(
+              "size-10 ring-2 transition-shadow",
+              active ? "ring-primary" : "ring-border group-hover:ring-primary/50"
+            )}
+          >
+            <AvatarImage
+              src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
+              alt="User avatar"
+            />
+            <AvatarFallback className="bg-secondary text-sm">
+              {user.email?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <RailTooltip label="Profile" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="left" align="start" sideOffset={14} className="min-w-52 rounded-xl p-1.5">
+        <DropdownMenuLabel className="font-normal">
+          <p className="truncate text-sm font-medium">{name}</p>
+          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/profile">
+            <User />
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled={isLoggingOut} onClick={logout}>
+          <LogOut />
+          {isLoggingOut ? "Logging out..." : "Logout"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function RailQuickAdd() {
+  const pickQuickAdd = useQuickAddPick()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Add transaction"
+          className={cn(
+            railItemClass,
+            "bg-[#2a4064] text-white shadow-[0_10px_24px_-8px_rgba(42,64,100,0.75)] hover:bg-[#355278] data-[state=open]:bg-[#355278] dark:ring-1 dark:ring-white/15"
+          )}
+        >
+          <Plus
+            className="size-5 transition-transform group-data-[state=open]:rotate-45"
+            strokeWidth={2.5}
+          />
+          <RailTooltip label="Add transaction" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="left" align="center" sideOffset={14} className="w-60 rounded-2xl p-2">
+        {quickAddOptions.map((option) => {
+          const Icon = option.icon
+          return (
+            <DropdownMenuItem
+              key={option.kind}
+              onSelect={() => pickQuickAdd(option.kind)}
+              className="gap-3 rounded-xl px-3 py-2.5 focus:bg-secondary focus:text-foreground"
+            >
+              <span className="flex size-9 items-center justify-center rounded-full bg-secondary text-foreground">
+                <Icon className="size-4 text-foreground" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{option.label}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {option.description}
+                </span>
+              </span>
+            </DropdownMenuItem>
+          )
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function RailThemeToggle() {
+  const { theme, toggleTheme } = useTheme()
+  const label = theme === "dark" ? "Light mode" : "Dark mode"
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      className={cn(
+        railItemClass,
+        "text-muted-foreground hover:bg-secondary hover:text-foreground"
+      )}
+    >
+      {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
+      <RailTooltip label={label} />
+    </button>
+  )
+}
+
+const railSurfaceClass =
+  "flex flex-col items-center gap-1.5 rounded-full border border-border/70 bg-card/90 p-2.5 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.45)] backdrop-blur-xl"
+
+function DesktopNavRail({
+  pathname,
+  profileActive,
+}: {
+  pathname: string
+  profileActive: boolean
+}) {
+  return (
+    <aside className="fixed inset-y-4 right-4 z-50 hidden w-16 flex-col items-center md:flex lg:inset-y-6 lg:right-6">
+      <nav aria-label="Main" className={railSurfaceClass}>
+        <RailProfileMenu active={profileActive} />
+        <span aria-hidden className="my-1 h-px w-7 bg-border" />
+        {railNav.map((item) => (
+          <RailLink
+            key={item.href}
+            href={item.href}
+            name={item.name}
+            icon={item.icon}
+            active={
+              item.exact
+                ? pathname === item.href
+                : isActivePath(pathname, item.href)
+            }
+          />
+        ))}
+        <span aria-hidden className="my-1 h-px w-7 bg-border" />
+        <RailQuickAdd />
+      </nav>
+      <div className={cn(railSurfaceClass, "mt-auto")}>
+        <RailThemeToggle />
+      </div>
+    </aside>
+  )
+}
+
 function TrackNavInner() {
   const pathname = usePathname()
   const { user } = useAuth()
@@ -324,11 +548,20 @@ function TrackNavInner() {
 
   return (
     <>
-      <div className="pointer-events-none fixed right-4 top-4 z-50 md:right-6 md:top-6">
+      <div
+        className={cn(
+          "pointer-events-none fixed right-4 top-4 z-50 md:right-6 md:top-6",
+          user && "md:hidden"
+        )}
+      >
         <div className="pointer-events-auto">
           <TrackProfileMenu />
         </div>
       </div>
+
+      {user ? (
+        <DesktopNavRail pathname={pathname} profileActive={profileActive} />
+      ) : null}
 
       {user ? (
         <div className="fixed inset-x-4 bottom-4 z-50 md:hidden">

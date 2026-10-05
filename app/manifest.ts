@@ -4,7 +4,7 @@ import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo"
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: SITE_NAME,
-    short_name: "Position Wise",
+    short_name: "Wise Track",
     description: SITE_DESCRIPTION,
     start_url: "/",
     display: "standalone",

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { persistAuthIntent, sanitizeAuthNext } from "@/lib/auth-intent";
+import { sanitizeAuthNext } from "@/lib/auth-intent";
 import { getOAuthCallbackUrl } from "@/lib/dev-app-origin";
 import { supabase } from "@/lib/supabase/client";
 import { AuthProvider, useAuth } from "@/components/providers/auth-provider";
@@ -10,8 +10,6 @@ import { BrandLogoLink } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { PageLoading } from "@/components/ui/page-loading";
-import { isOnTrackPlatformHost } from "@track/lib/track-platform-url";
-
 function SignInPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,7 +51,6 @@ function SignInPageContent() {
   const handleGoogleLogin = async () => {
     setError(null);
     setPending(true);
-    persistAuthIntent(isOnTrackPlatformHost() || next === "/app" ? "track" : "advisory");
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

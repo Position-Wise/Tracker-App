@@ -84,7 +84,7 @@ export function ShareCard({
             color: "rgba(255,255,255,0.72)",
           }}
         >
-          Advisory
+          Track
         </span>
       </div>
 

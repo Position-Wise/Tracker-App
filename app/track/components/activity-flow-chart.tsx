@@ -575,15 +575,16 @@ function FlowCard({
           )}
         >
           {item.name}
-        </p>
+        
         {compact ? null : (
-          <div className="shrink-0 text-right">
+          <div className="shrink-0 text-right flex justify-between items-baseline">
             <p className="text-sm font-semibold tabular-nums">
               {formatMoney(item.total, currency)}
             </p>
             <p className="text-[11px] text-muted-foreground">{item.pct}%</p>
           </div>
         )}
+        </p>
       </div>
       {compact ? (
         <div className="flex w-full items-baseline justify-between gap-1 pl-0.5">

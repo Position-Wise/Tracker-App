@@ -56,6 +56,31 @@ export function effectiveCreditLimit(
   return source.creditLimit
 }
 
+/** Used / available credit for a card, pooled across cards sharing a limit. */
+export function cardLimitUsage(
+  source: MoneySource,
+  allSources: MoneySource[],
+  balanceFor: (id: string) => number,
+  limitFor: (source: MoneySource) => number | null
+) {
+  if (source.kind !== "credit_card") return null
+  const limit = limitFor(source)
+  if (limit == null || limit <= 0) return null
+
+  const used = source.creditLimitPoolId
+    ? allSources
+        .filter((s) => s.creditLimitPoolId === source.creditLimitPoolId)
+        .reduce((sum, s) => sum + Math.max(0, balanceFor(s.id)), 0)
+    : Math.max(0, balanceFor(source.id))
+
+  return {
+    limit,
+    used,
+    available: Math.max(0, limit - used),
+    usedPct: Math.min(100, (used / limit) * 100),
+  }
+}
+
 export type LocalTransactionKind = "income" | "transfer"
 
 export type LocalTrackTransaction = {
