@@ -281,6 +281,27 @@ export async function listExpensesForMonth(
   )
 }
 
+export async function listExpensesBetween(
+  supabase: SupabaseServerClient,
+  userId: string,
+  startIso: string,
+  endIso: string
+): Promise<ExpenseWithCategory[]> {
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(EXPENSE_LIST_SELECT)
+    .eq("user_id", userId)
+    .gte("spent_at", startIso)
+    .lt("spent_at", endIso)
+    .order("spent_at", { ascending: false })
+
+  if (error) throw new Error(error.message)
+
+  return (data ?? []).map((row) =>
+    mapExpenseRow(row as Parameters<typeof mapExpenseRow>[0])
+  )
+}
+
 export async function listIncomesForMonth(
   supabase: SupabaseServerClient,
   userId: string,
@@ -502,7 +523,16 @@ export async function listInsightLedger(
   monthKey: string
 ): Promise<InsightLedgerPoint[]> {
   const { startIso, endIso } = insightFetchBounds(monthKey)
+  return listLedgerBetween(supabase, userId, startIso, endIso)
+}
 
+/** Expense + income amounts in [startIso, endIso). */
+export async function listLedgerBetween(
+  supabase: SupabaseServerClient,
+  userId: string,
+  startIso: string,
+  endIso: string
+): Promise<InsightLedgerPoint[]> {
   const [expensesRes, incomesRes] = await Promise.all([
     supabase
       .from("expenses")

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { Work_Sans } from "next/font/google";
 import "./globals.css";
 import NavShell from "@/components/layout/nav-shell";
@@ -10,7 +9,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { getDefaultMetadata } from "@/lib/seo"
-import { resolveTrackPlatformRedirectUrl } from "@track/lib/resolve-track-platform-url"
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -20,51 +18,22 @@ const workSans = Work_Sans({
 
 export const metadata: Metadata = getDefaultMetadata();
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headerStore = await headers()
-  const product = headerStore.get("x-product")
-  const isTrack = product === "track"
-  const [trackHomeUrl, trackSignUpUrl] = isTrack
-    ? ["/", "/sign-up"]
-    : await Promise.all([
-        resolveTrackPlatformRedirectUrl("/"),
-        resolveTrackPlatformRedirectUrl("/sign-up"),
-      ])
-
   return (
     <html lang="en-IN" className={workSans.variable} suppressHydrationWarning>
       <body
-        className={
-          isTrack
-            ? "track-app min-h-dvh bg-background font-sans text-foreground"
-            : "bg-background font-sans text-foreground pt-16 pb-40 md:py-0"
-        }
+        className="track-app min-h-dvh bg-background font-sans text-foreground"
         suppressHydrationWarning
       >
         <OrganizationJsonLd />
-        {isTrack ? (
-          <TrackRootProviders>
-            <NavShell
-              product={product}
-              trackHomeUrl={trackHomeUrl}
-              trackSignUpUrl={trackSignUpUrl}
-            />
-            {children}
-          </TrackRootProviders>
-        ) : (
-          <>
-            <NavShell
-              product={product}
-              trackHomeUrl={trackHomeUrl}
-              trackSignUpUrl={trackSignUpUrl}
-            />
-            {children}
-          </>
-        )}
+        <TrackRootProviders>
+          <NavShell />
+          {children}
+        </TrackRootProviders>
         <Toaster />
         <CookieBanner />
         <Analytics />

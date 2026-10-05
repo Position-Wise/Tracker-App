@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { persistAuthIntent, sanitizeAuthNext } from "@/lib/auth-intent"
+import { sanitizeAuthNext } from "@/lib/auth-intent"
 import { getOAuthCallbackUrl } from "@/lib/dev-app-origin"
 import { supabase } from "@/lib/supabase/client"
 import { BrandLogoLink } from "@/components/brand/logo"
@@ -11,8 +11,6 @@ import { Button } from "@/components/ui/button"
 import { FormError } from "@/components/ui/form-error"
 import { Input } from "@/components/ui/input"
 import { PageLoading } from "@/components/ui/page-loading"
-import { isOnTrackPlatformHost } from "@track/lib/track-platform-url"
-
 function SignUpPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -21,7 +19,6 @@ function SignUpPageContent() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<"email" | "google" | null>(null)
-  const trackIntent = isOnTrackPlatformHost() || next === "/app"
 
   const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -38,7 +35,6 @@ function SignUpPageContent() {
     }
 
     setPending("email")
-    persistAuthIntent(trackIntent ? "track" : "advisory")
     const { error: signUpError } = await supabase.auth.signUp({
       email: trimmedEmail,
       password,
@@ -60,7 +56,6 @@ function SignUpPageContent() {
   const handleGoogle = async () => {
     setError(null)
     setPending("google")
-    persistAuthIntent(trackIntent ? "track" : "advisory")
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -80,9 +75,7 @@ function SignUpPageContent() {
     <div className="flex min-h-screen items-center justify-center px-6 py-16">
       <div className="w-full max-w-md space-y-6">
         <BrandLogoLink href="/" className="mx-auto" logoClassName="h-8 w-auto" />
-        <h1 className="text-center text-2xl font-semibold">
-          {trackIntent ? "Start tracking free" : "Create Account"}
-        </h1>
+        <h1 className="text-center text-2xl font-semibold">Start tracking free</h1>
 
         <form className="space-y-4" onSubmit={handleSignUp} noValidate>
           <div className="space-y-1">

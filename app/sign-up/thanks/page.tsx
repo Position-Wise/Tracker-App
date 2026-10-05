@@ -6,7 +6,7 @@ import { noIndexRobots } from "@/lib/seo"
 
 export const metadata: Metadata = {
   title: "Thank you",
-  description: "Check your email to confirm your Position Wise Advisory account.",
+  description: "Check your email to confirm your Wise Track account.",
   robots: noIndexRobots,
 }
 
@@ -23,7 +23,7 @@ export default function SignUpThanksPage() {
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           We sent a confirmation link. After you confirm, sign in and start
-          tracking or request advisory access.
+          tracking.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild>

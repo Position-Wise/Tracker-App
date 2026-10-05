@@ -5,7 +5,9 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   useTransition,
+  type ReactNode,
   type KeyboardEvent,
   type PointerEvent,
 } from "react"
@@ -44,6 +46,7 @@ import {
 } from "@/components/ui/dialog"
 import { buildExpensesHref, resolveExpenseSourceId } from "@track/lib/expense-browse"
 import {
+  cardLimitUsage,
   MONEY_SOURCE_KIND_LABEL,
   type CardNetwork,
   type MoneySource,
@@ -52,7 +55,6 @@ import {
 import { relativeDayLabel, toMonthKey } from "@track/lib/month"
 import type { ExpenseWithCategory } from "@track/lib/types"
 import { cn } from "@/lib/utils"
-
 type AccountsCarouselViewProps = {
   recentAcross: ExpenseWithCategory[]
   holderName?: string
@@ -285,6 +287,61 @@ function useSwipeUpOpen(onOpen: () => void, swipeEnabled: boolean) {
   }
 }
 
+const WIDE_QUERY = "(min-width: 640px)"
+
+function useMinWidth(query: string) {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mql = window.matchMedia(query)
+      mql.addEventListener("change", onChange)
+      return () => mql.removeEventListener("change", onChange)
+    },
+    () => window.matchMedia(query).matches,
+    () => false
+  )
+}
+
+const LANDSCAPE_SLIDE = "min(26rem, 72vw)"
+/** Lets the first and last slide reach the center (1rem accounts for the gap). */
+const LANDSCAPE_EDGE = `max(0px, calc(50% - ${LANDSCAPE_SLIDE} / 2 - 1rem))`
+
+function centerSlide(
+  root: HTMLElement,
+  slide: HTMLElement,
+  behavior: ScrollBehavior = "smooth"
+) {
+  const rootRect = root.getBoundingClientRect()
+  const slideRect = slide.getBoundingClientRect()
+  const delta =
+    slideRect.left + slideRect.width / 2 - (rootRect.left + rootRect.width / 2)
+  root.scrollTo({ left: root.scrollLeft + delta, behavior })
+}
+
+function nearestSlideIndex(root: HTMLElement, slides: (HTMLElement | null)[]) {
+  const rootRect = root.getBoundingClientRect()
+  const center = rootRect.left + rootRect.width / 2
+  let best = -1
+  let bestDistance = Infinity
+  slides.forEach((slide, index) => {
+    if (!slide) return
+    const rect = slide.getBoundingClientRect()
+    const distance = Math.abs(rect.left + rect.width / 2 - center)
+    if (distance < bestDistance) {
+      bestDistance = distance
+      best = index
+    }
+  })
+  return best
+}
+
+function scrollToAccountSlide(sourceId: string) {
+  const slide = document.querySelector<HTMLElement>(
+    `[data-account-slide="${sourceId}"]`
+  )
+  const root = slide?.closest<HTMLElement>("[data-account-scroller]")
+  if (slide && root) centerSlide(root, slide)
+}
+
 export function AccountsCarouselView({
   recentAcross,
   holderName = "",
@@ -304,6 +361,8 @@ export function AccountsCarouselView({
   const [manageOpen, setManageOpen] = useState(false)
   const [editing, setEditing] = useState<MoneySource | null>(null)
 
+  const isWide = useMinWidth(WIDE_QUERY)
+  const browseSource = ordered[browseIndex] ?? ordered[0] ?? null
   const selectedSource = selectedId
     ? (ordered.find((s) => s.id === selectedId) ?? null)
     : null
@@ -342,6 +401,33 @@ export function AccountsCarouselView({
             </Button>
           </section>
         </div>
+      ) : isWide && browseSource ? (
+        <AccountWideView
+          sources={ordered}
+          activeIndex={browseIndex}
+          onActiveIndexChange={setBrowseIndex}
+          holderName={holderName}
+          onManage={() => setManageOpen(true)}
+          onAdd={() => setAddOpen(true)}
+          detail={
+            <AccountDetailView
+              key={browseSource.id}
+              source={browseSource}
+              currency={currency}
+              holderName={holderName}
+              balance={sourceBalance(browseSource.id)}
+              usage={cardLimitUsage(
+                browseSource,
+                sources,
+                sourceBalance,
+                cardCreditLimit
+              )}
+              recentAcross={recentAcross}
+              onEdit={() => setEditing(browseSource)}
+              wide
+            />
+          }
+        />
       ) : selectedSource ? (
         <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
           <AccountDetailView
@@ -482,7 +568,7 @@ function AccountBrowseView({
     <div className="space-y-6">
       <BrowseHeader onManage={onManage} onAdd={onAdd} />
 
-      <section className="w-full space-y-5 sm:mx-auto sm:max-w-md">
+      <section className="w-full space-y-5">
         {activeSource ? (
           <AccountBalancePanel
             source={activeSource}
@@ -508,50 +594,272 @@ function AccountBrowseView({
   )
 }
 
+/** Tablet / desktop: landscape cards centered, active account details below. */
+function AccountWideView({
+  sources,
+  activeIndex,
+  onActiveIndexChange,
+  holderName,
+  onManage,
+  onAdd,
+  detail,
+}: {
+  sources: MoneySource[]
+  activeIndex: number
+  onActiveIndexChange: (index: number) => void
+  holderName: string
+  onManage: () => void
+  onAdd: () => void
+  detail: ReactNode
+}) {
+  const prev = sources[activeIndex - 1]
+  const next = sources[activeIndex + 1]
+
+  return (
+    <div className="space-y-6">
+      <BrowseHeader onManage={onManage} onAdd={onAdd} />
+
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <section className="min-w-0">
+          <AccountPickerCarousel
+            sources={sources}
+            activeIndex={activeIndex}
+            onActiveIndexChange={onActiveIndexChange}
+            holderName={holderName}
+            onOpen={(source) => scrollToAccountSlide(source.id)}
+            landscape
+          />
+          {sources.length > 1 ? (
+            <div className="mt-1 flex items-center justify-center gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                className="rounded-full"
+                disabled={!prev}
+                onClick={() => prev && scrollToAccountSlide(prev.id)}
+                aria-label="Previous account"
+              >
+                <ArrowLeft className="size-4" />
+              </Button>
+              <div className="flex items-center gap-1.5">
+                {sources.map((source, index) => (
+                  <button
+                    key={source.id}
+                    type="button"
+                    onClick={() => scrollToAccountSlide(source.id)}
+                    aria-label={`Show ${source.name}`}
+                    aria-current={index === activeIndex}
+                    className={
+                      index === activeIndex
+                        ? "h-1.5 w-5 rounded-full bg-foreground transition-all"
+                        : "size-1.5 rounded-full bg-border transition-all hover:bg-muted-foreground"
+                    }
+                  />
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                className="rounded-full"
+                disabled={!next}
+                onClick={() => next && scrollToAccountSlide(next.id)}
+                aria-label="Next account"
+              >
+                <ArrowRight className="size-4" />
+              </Button>
+            </div>
+          ) : null}
+        </section>
+
+        {detail}
+      </div>
+    </div>
+  )
+}
+
 function AccountPickerCarousel({
   sources,
   activeIndex,
   onActiveIndexChange,
   holderName,
   onOpen,
+  landscape = false,
 }: {
   sources: MoneySource[]
   activeIndex: number
   onActiveIndexChange: (index: number) => void
   holderName: string
   onOpen: (source: MoneySource) => void
+  landscape?: boolean
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const slideRefs = useRef<(HTMLDivElement | null)[]>([])
+  const dragRef = useRef<{
+    pointerId: number
+    startX: number
+    startScroll: number
+    moved: boolean
+  } | null>(null)
+  const suppressClickRef = useRef(false)
+  const initialIndexRef = useRef(activeIndex)
+
+  useEffect(() => {
+    const root = scrollRef.current
+    const slide = slideRefs.current[initialIndexRef.current]
+    if (root && slide) centerSlide(root, slide, "instant")
+  }, [])
 
   useEffect(() => {
     const root = scrollRef.current
     if (!root) return
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
-        const top = visible[0]
-        if (!top) return
-        const index = Number(top.target.getAttribute("data-index"))
-        if (!Number.isNaN(index)) onActiveIndexChange(index)
-      },
-      { root, threshold: [0.55, 0.72, 0.88] }
-    )
+    slideRefs.current.length = sources.length
+    let frame = 0
+    const sync = () => {
+      frame = 0
+      const index = nearestSlideIndex(root, slideRefs.current)
+      if (index >= 0) onActiveIndexChange(index)
+    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(sync)
+    }
 
-    slideRefs.current.forEach((node) => {
-      if (node) observer.observe(node)
-    })
-
-    return () => observer.disconnect()
+    root.addEventListener("scroll", onScroll, { passive: true })
+    return () => {
+      root.removeEventListener("scroll", onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
   }, [onActiveIndexChange, sources.length])
+
+  useEffect(() => {
+    const root = scrollRef.current
+    if (!root || !landscape) return
+
+    let lastStep = 0
+    let pending = -1
+    const onWheel = (event: WheelEvent) => {
+      // Trackpads already scroll horizontally; only translate vertical wheels.
+      if (Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return
+      const now = performance.now()
+      const base =
+        now - lastStep < 600 && pending >= 0
+          ? pending
+          : nearestSlideIndex(root, slideRefs.current)
+      const target = base + Math.sign(event.deltaY)
+      if (target < 0 || target >= slideRefs.current.length) return
+      event.preventDefault()
+      if (now - lastStep < 320) return
+      lastStep = now
+      pending = target
+      const slide = slideRefs.current[target]
+      if (slide) centerSlide(root, slide)
+    }
+
+    root.addEventListener("wheel", onWheel, { passive: false })
+    return () => root.removeEventListener("wheel", onWheel)
+  }, [landscape, sources.length])
+
+  if (landscape) {
+    const goTo = (index: number) => {
+      const root = scrollRef.current
+      const slide = slideRefs.current[index]
+      if (root && slide) centerSlide(root, slide)
+    }
+
+    return (
+      <div
+        ref={scrollRef}
+        data-account-scroller
+        className="flex cursor-grab snap-x snap-mandatory gap-4 overflow-x-auto py-6 select-none [scrollbar-width:none] active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+          event.preventDefault()
+          const step = event.key === "ArrowRight" ? 1 : -1
+          goTo(Math.min(sources.length - 1, Math.max(0, activeIndex + step)))
+        }}
+        onPointerDown={(event) => {
+          if (event.pointerType !== "mouse" || event.button !== 0) return
+          const root = event.currentTarget
+          dragRef.current = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startScroll: root.scrollLeft,
+            moved: false,
+          }
+        }}
+        onPointerMove={(event) => {
+          const drag = dragRef.current
+          if (!drag || drag.pointerId !== event.pointerId) return
+          const root = event.currentTarget
+          const dx = event.clientX - drag.startX
+          if (!drag.moved && Math.abs(dx) < 6) return
+          if (!drag.moved) {
+            drag.moved = true
+            root.setPointerCapture(event.pointerId)
+            root.style.scrollSnapType = "none"
+            root.style.scrollBehavior = "auto"
+          }
+          root.scrollLeft = drag.startScroll - dx
+        }}
+        onPointerUp={(event) => {
+          const drag = dragRef.current
+          dragRef.current = null
+          if (!drag?.moved) return
+          const root = event.currentTarget
+          suppressClickRef.current = true
+          root.style.scrollSnapType = ""
+          root.style.scrollBehavior = ""
+          const dx = event.clientX - drag.startX
+          const nearest = nearestSlideIndex(root, slideRefs.current)
+          const flick =
+            nearest === activeIndex && Math.abs(dx) > 40 ? (dx < 0 ? 1 : -1) : 0
+          goTo(Math.min(sources.length - 1, Math.max(0, nearest + flick)))
+        }}
+        onPointerCancel={(event) => {
+          dragRef.current = null
+          event.currentTarget.style.scrollSnapType = ""
+          event.currentTarget.style.scrollBehavior = ""
+        }}
+        onClickCapture={(event) => {
+          if (!suppressClickRef.current) return
+          suppressClickRef.current = false
+          event.preventDefault()
+          event.stopPropagation()
+        }}
+      >
+        <div aria-hidden className="shrink-0" style={{ width: LANDSCAPE_EDGE }} />
+        {sources.map((source, index) => (
+          <div
+            key={source.id}
+            ref={(node) => {
+              slideRefs.current[index] = node
+            }}
+            data-index={index}
+            data-account-slide={source.id}
+            className="shrink-0 snap-center"
+            style={{ width: LANDSCAPE_SLIDE }}
+          >
+            <AccountCard
+              source={source}
+              active={index === activeIndex}
+              holderName={holderName}
+              onOpen={() => onOpen(source)}
+              landscape
+            />
+          </div>
+        ))}
+        <div aria-hidden className="shrink-0" style={{ width: LANDSCAPE_EDGE }} />
+      </div>
+    )
+  }
 
   return (
     <div
       ref={scrollRef}
-      className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-pl-4 scroll-pr-4 py-2 pl-4 pr-4 [scrollbar-width:none] sm:mx-0 sm:scroll-pl-0 sm:scroll-pr-0 sm:pl-0 sm:pr-0 [&::-webkit-scrollbar]:hidden"
+      data-account-scroller
+      className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-pl-4 scroll-pr-4 py-2 pl-4 pr-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {sources.map((source, index) => (
         <div
@@ -560,7 +868,8 @@ function AccountPickerCarousel({
             slideRefs.current[index] = node
           }}
           data-index={index}
-          className="w-[calc(100vw-2.75rem)] shrink-0 snap-center sm:w-[calc(100%-1.25rem)]"
+          data-account-slide={source.id}
+          className="w-[calc(100vw-2.75rem)] shrink-0 snap-center"
         >
           <AccountCard
             source={source}
@@ -579,11 +888,13 @@ function AccountCard({
   active,
   holderName,
   onOpen,
+  landscape = false,
 }: {
   source: MoneySource
   active: boolean
   holderName: string
   onOpen: () => void
+  landscape?: boolean
 }) {
   const { hidden } = useTrackMoney()
   const theme = themeForSource(source)
@@ -592,23 +903,39 @@ function AccountCard({
   const maskedNumber = source.last4 ? `•••• ${source.last4}` : "•••• ••••"
   const productName = source.name.toUpperCase()
   const holder = holderName.trim().toUpperCase()
-  const swipe = useSwipeUpOpen(onOpen, active)
+  const swipe = useSwipeUpOpen(onOpen, active && !landscape)
 
   return (
     <button
       type="button"
-      {...swipe.bind}
-      className="relative block aspect-10/16 w-full touch-pan-x overflow-hidden rounded-[1.35rem] text-left text-white shadow-2xl"
-      style={{
-        background: theme.gradient,
-        boxShadow: active ? `0 28px 56px -16px ${theme.glow}` : undefined,
-        transform: `translateY(${swipe.offset}px) scale(${active ? 1 : 0.98})`,
-        opacity: swipe.leaving ? 0.4 : active ? 1 : 0.85,
-        touchAction: swipe.dragging ? "none" : "pan-x",
-        transition: swipe.dragging
-          ? "none"
-          : "transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease",
-      }}
+      {...(landscape ? { onClick: onOpen } : swipe.bind)}
+      aria-current={landscape && active ? "true" : undefined}
+      className={
+        landscape
+          ? "relative block aspect-[1.6/1] w-full overflow-hidden rounded-[1.35rem] text-left text-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          : "relative block aspect-10/16 w-full touch-pan-x overflow-hidden rounded-[1.35rem] text-left text-white shadow-2xl"
+      }
+      style={
+        landscape
+          ? {
+              background: theme.gradient,
+              boxShadow: active ? `0 28px 56px -16px ${theme.glow}` : undefined,
+              transform: `scale(${active ? 1 : 0.9})`,
+              opacity: active ? 1 : 0.55,
+              transition:
+                "transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease",
+            }
+          : {
+              background: theme.gradient,
+              boxShadow: active ? `0 28px 56px -16px ${theme.glow}` : undefined,
+              transform: `translateY(${swipe.offset}px) scale(${active ? 1 : 0.98})`,
+              opacity: swipe.leaving ? 0.4 : active ? 1 : 0.85,
+              touchAction: swipe.dragging ? "none" : "pan-x",
+              transition: swipe.dragging
+                ? "none"
+                : "transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease",
+            }
+      }
     >
       <div
         aria-hidden
@@ -622,7 +949,13 @@ function AccountCard({
         className="pointer-events-none absolute -right-10 top-1/3 size-40 rounded-full bg-white/10 blur-2xl"
       />
 
-      <div className="absolute top-1/2 left-1/2 flex h-[62.5%] w-[160%] origin-center -translate-x-1/2 -translate-y-1/2 rotate-90 flex-col p-6 sm:p-8">
+      <div
+        className={
+          landscape
+            ? "absolute inset-0 flex flex-col p-6"
+            : "absolute top-1/2 left-1/2 flex h-[62.5%] w-[160%] origin-center -translate-x-1/2 -translate-y-1/2 rotate-90 flex-col p-6 sm:p-8"
+        }
+      >
         <div className="flex items-start justify-between gap-3">
           <span className="rounded-full bg-black/20 px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
             {theme.label}
@@ -713,6 +1046,7 @@ function AccountDetailView({
   recentAcross,
   onBack,
   onEdit,
+  wide = false,
 }: {
   source: MoneySource
   currency: string
@@ -720,8 +1054,9 @@ function AccountDetailView({
   balance: number
   usage: ReturnType<typeof cardLimitUsage>
   recentAcross: ExpenseWithCategory[]
-  onBack: () => void
+  onBack?: () => void
   onEdit: () => void
+  wide?: boolean
 }) {
   const { formatMoney, hidden, toggleHidden } = useTrackMoney()
   const theme = themeForSource(source)
@@ -729,19 +1064,36 @@ function AccountDetailView({
     source.kind === "credit_card" ? "Outstanding balance" : "Available balance"
 
   return (
-    <div className="-mx-4 overflow-hidden rounded-[1.75rem] sm:mx-0">
-      <section className="bg-(--brand-navy-black) px-5 pb-8 pt-4 text-white sm:px-6 sm:pt-5">
+    <div
+      className={
+        wide
+          ? "grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-5"
+          : "-mx-4 overflow-hidden rounded-[1.75rem] sm:mx-0"
+      }
+    >
+      <section
+        className={cn(
+          "bg-(--brand-navy-black) px-5 pb-8 pt-4 text-white sm:px-6 sm:pt-5",
+          wide && "rounded-[1.75rem] pb-6"
+        )}
+      >
         <div className="flex items-center justify-between gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-full text-white hover:bg-white/10 hover:text-white"
-            onClick={onBack}
-            aria-label="Back to accounts"
-          >
-            <ArrowLeft className="size-5" />
-          </Button>
+          {onBack ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-full text-white hover:bg-white/10 hover:text-white"
+              onClick={onBack}
+              aria-label="Back to accounts"
+            >
+              <ArrowLeft className="size-5" />
+            </Button>
+          ) : (
+            <p className="text-xs font-medium uppercase tracking-wider text-white/50">
+              Account details
+            </p>
+          )}
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -778,16 +1130,37 @@ function AccountDetailView({
               {formatMoney(usage.limit, currency)} limit
             </p>
           ) : null}
+          {wide && usage ? (
+            <div className="mt-5">
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-white/80"
+                  style={{ width: `${usage.usedPct}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-white/50">
+                {Math.round(usage.usedPct)}% of limit used
+              </p>
+            </div>
+          ) : null}
+          {wide ? (
+            <p className="mt-5 text-xs uppercase tracking-[0.16em] text-white/45">
+              {source.institution ?? MONEY_SOURCE_KIND_LABEL[source.kind]}
+              {source.last4 && !hidden ? ` · •••• ${source.last4}` : ""}
+            </p>
+          ) : null}
         </div>
 
-        <div className="mt-8 flex justify-center">
-          <CompactHorizontalCard
-            source={source}
-            theme={theme}
-            usage={usage}
-            holderName={holderName}
-          />
-        </div>
+        {wide ? null : (
+          <div className="mt-8 flex justify-center">
+            <CompactHorizontalCard
+              source={source}
+              theme={theme}
+              usage={usage}
+              holderName={holderName}
+            />
+          </div>
+        )}
       </section>
 
       <AccountRecentTransactions
@@ -795,6 +1168,7 @@ function AccountDetailView({
         currency={currency}
         recentAcross={recentAcross}
         onEdit={onEdit}
+        wide={wide}
       />
     </div>
   )
@@ -868,11 +1242,13 @@ function AccountRecentTransactions({
   currency,
   recentAcross,
   onEdit,
+  wide = false,
 }: {
   source: MoneySource
   currency: string
   recentAcross: ExpenseWithCategory[]
   onEdit: () => void
+  wide?: boolean
 }) {
   const { formatMoney } = useTrackMoney()
   const { getExpenseSourceId } = useTrackLedger()
@@ -887,8 +1263,8 @@ function AccountRecentTransactions({
           (expense) =>
             resolveExpenseSourceId(expense, getExpenseSourceId) === source.id
         )
-        .slice(0, 5),
-    [getExpenseSourceId, recentAcross, source.id]
+        .slice(0, wide ? 8 : 5),
+    [getExpenseSourceId, recentAcross, source.id, wide]
   )
 
   const viewMonth =
@@ -909,7 +1285,13 @@ function AccountRecentTransactions({
   }
 
   return (
-    <section className="track-panel -mt-4 mx-5 rounded-t-[1.75rem] border-t-0 px-5 pb-5 pt-6 sm:px-6">
+    <section
+      className={
+        wide
+          ? "track-panel min-w-0 px-5 pb-5 pt-6 sm:px-6"
+          : "track-panel -mt-4 mx-5 rounded-t-[1.75rem] border-t-0 px-5 pb-5 pt-6 sm:px-6"
+      }
+    >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-tight">
           Recent transactions
@@ -1000,28 +1382,4 @@ function AccountRecentTransactions({
       </div>
     </section>
   )
-}
-
-function cardLimitUsage(
-  source: MoneySource,
-  allSources: MoneySource[],
-  balanceFor: (id: string) => number,
-  limitFor: (source: MoneySource) => number | null
-) {
-  if (source.kind !== "credit_card") return null
-  const limit = limitFor(source)
-  if (limit == null || limit <= 0) return null
-
-  const used = source.creditLimitPoolId
-    ? allSources
-        .filter((s) => s.creditLimitPoolId === source.creditLimitPoolId)
-        .reduce((sum, s) => sum + Math.max(0, balanceFor(s.id)), 0)
-    : Math.max(0, balanceFor(source.id))
-
-  return {
-    limit,
-    used,
-    available: Math.max(0, limit - used),
-    usedPct: Math.min(100, (used / limit) * 100),
-  }
 }

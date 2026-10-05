@@ -5,8 +5,6 @@ import { redirect } from "next/navigation"
 import { noIndexRobots } from "@/lib/seo"
 import { TrackOverviewSkeleton } from "@track/components/track-skeletons"
 import { TrackAppClientShell } from "@track/components/track-app-client-shell"
-import { getSubdomain } from "@/lib/get-subdomain"
-import { TRACK_PLATFORM_SUBDOMAIN } from "@/lib/reserved-subdomains"
 import {
   computeSourceBalances,
   ensureDefaultMoneySource,
@@ -26,11 +24,6 @@ interface TrackAppLayoutProps {
 }
 
 export default async function TrackAppLayout({ children }: TrackAppLayoutProps) {
-  const subdomain = await getSubdomain()
-  if (subdomain !== TRACK_PLATFORM_SUBDOMAIN) {
-    redirect("/")
-  }
-
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -41,7 +34,7 @@ export default async function TrackAppLayout({ children }: TrackAppLayoutProps) 
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-16 sm:px-6 md:pb-12 md:pt-8">
+    <div className="mx-auto w-full max-w-[2560px] px-4 pb-28 pt-16 sm:px-6 md:pb-12 md:pl-8 md:pr-28 md:pt-8 lg:pl-10 lg:pr-32">
       <Suspense fallback={<TrackOverviewSkeleton />}>
         <TrackAppDataShell userId={user.id}>{children}</TrackAppDataShell>
       </Suspense>

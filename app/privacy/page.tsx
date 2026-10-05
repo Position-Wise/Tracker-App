@@ -1,21 +1,19 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { LegalDocument } from "@/components/legal/legal-document"
-import { SiteFooter } from "@web/components/site-footer"
+import { SiteFooter } from "@/components/layout/site-footer"
 import { getCompanyContact } from "@/lib/company"
 import { buildShareMetadata } from "@/lib/seo"
-import { resolveTrackPlatformRedirectUrl } from "@track/lib/resolve-track-platform-url"
 
 export const metadata: Metadata = buildShareMetadata({
   title: "Privacy policy",
   description:
-    "How Position Wise Advisory collects, uses, and protects personal data across advisory access and Wise Track.",
+    "How Wise Track collects, uses, and protects personal data for your account and expense tracker.",
   path: "/privacy",
 })
 
-export default async function PrivacyPage() {
+export default function PrivacyPage() {
   const contact = getCompanyContact()
-  const trackHomeUrl = await resolveTrackPlatformRedirectUrl("/")
 
   return (
     <>
@@ -24,8 +22,7 @@ export default async function PrivacyPage() {
           <h2>Who we are</h2>
           <p>
             This policy explains how {contact.legalName} (“we”, “us”) handles
-            personal data when you use our website, Wise Track, and advisory
-            access.
+            personal data when you use Wise Track.
           </p>
           <p className="mt-3">
             {contact.addressLines.join(", ")}
@@ -53,10 +50,6 @@ export default async function PrivacyPage() {
               transfers, and related preferences.
             </li>
             <li>
-              Advisory and membership data: plan choices, inquiries, and payment
-              proof you upload.
-            </li>
-            <li>
               Technical data: device, browser, and approximate usage needed to
               keep the service secure.
             </li>
@@ -67,8 +60,7 @@ export default async function PrivacyPage() {
           <h2>How we use data</h2>
           <ul>
             <li>To create and secure your account.</li>
-            <li>To provide Wise Track and advisory access you request.</li>
-            <li>To review membership and custom-plan inquiries.</li>
+            <li>To provide Wise Track.</li>
             <li>
               To understand aggregated site usage via privacy-friendly Vercel
               Analytics.
@@ -90,8 +82,7 @@ export default async function PrivacyPage() {
           <h2>Processors</h2>
           <p>
             We host the app on Vercel and store account and product data with
-            Supabase. Payment screenshots you upload are stored so we can review
-            membership requests. We do not sell your personal data.
+            Supabase. We do not sell your personal data.
           </p>
         </section>
 
@@ -107,7 +98,7 @@ export default async function PrivacyPage() {
           </p>
         </section>
       </LegalDocument>
-      <SiteFooter trackHomeUrl={trackHomeUrl} />
+      <SiteFooter />
     </>
   )
 }

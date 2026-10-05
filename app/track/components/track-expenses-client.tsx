@@ -176,21 +176,6 @@ export function TrackExpensesClient({
         </div>
       </div>
 
-      <WeekDayStrip
-        monthKey={monthKey}
-        selectedKey={dayKey}
-        onSelect={setDayKey}
-        spendByDay={spendByDay}
-      />
-
-      <DaySpendArc
-        dateKey={dayKey}
-        currency={currency}
-        total={dayTotal}
-        count={dayExpenses.length}
-        slices={daySlices}
-      />
-
       <ExpenseFormDialog
         categories={categories}
         open={expenseOpen}
@@ -198,33 +183,52 @@ export function TrackExpensesClient({
         initialDate={dayKey}
       />
 
-      <ExpensesList
-        expenses={expenses}
-        categories={categories}
-        currency={currency}
-        monthKey={monthKey}
-        income={income}
-        transfers={transfers}
-        showBrowseControls
-        accountFilterId={accountFilterId}
-        query={query}
-        onQueryChange={setQuery}
-        groupBy={groupBy}
-        onGroupByChange={setGroupBy}
-        initialExpenseId={expenseId}
-        onSelectedExpenseIdChange={setExpenseId}
-        onClearAccountFilter={() => {
-          router.replace(
-            buildExpensesHref({
-              monthKey,
-              groupBy,
-              query,
-              expenseId,
-            })
-          )
-        }}
-        onAddExpense={() => setExpenseOpen(true)}
-      />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] xl:items-start">
+        <div className="space-y-6 xl:sticky xl:top-8">
+          <WeekDayStrip
+            monthKey={monthKey}
+            selectedKey={dayKey}
+            onSelect={setDayKey}
+            spendByDay={spendByDay}
+          />
+
+          <DaySpendArc
+            dateKey={dayKey}
+            currency={currency}
+            total={dayTotal}
+            count={dayExpenses.length}
+            slices={daySlices}
+          />
+        </div>
+
+        <ExpensesList
+          expenses={expenses}
+          categories={categories}
+          currency={currency}
+          monthKey={monthKey}
+          income={income}
+          transfers={transfers}
+          showBrowseControls
+          accountFilterId={accountFilterId}
+          query={query}
+          onQueryChange={setQuery}
+          groupBy={groupBy}
+          onGroupByChange={setGroupBy}
+          initialExpenseId={expenseId}
+          onSelectedExpenseIdChange={setExpenseId}
+          onClearAccountFilter={() => {
+            router.replace(
+              buildExpensesHref({
+                monthKey,
+                groupBy,
+                query,
+                expenseId,
+              })
+            )
+          }}
+          onAddExpense={() => setExpenseOpen(true)}
+        />
+      </div>
     </div>
   )
 }

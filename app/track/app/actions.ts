@@ -21,7 +21,7 @@ function text(formData: FormData, key: string) {
 function revalidateTrack() {
   revalidatePath("/app")
   revalidatePath("/app/expenses")
-  revalidatePath("/app/categories")
+  revalidatePath("/app/analytics")
   revalidatePath("/app/accounts")
   revalidatePath("/profile")
 }

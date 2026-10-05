@@ -9,6 +9,6 @@ export default function TermsOpenGraphImage() {
   return createShareImage({
     kicker: "Terms",
     title: "The rules for using Position Wise.",
-    subtitle: "Wise Track, advisory access, and how we work together.",
+    subtitle: "How Wise Track works, and what you agree to.",
   })
 }

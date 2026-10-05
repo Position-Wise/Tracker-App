@@ -15,7 +15,7 @@ export function BrandLogo({
   return (
     <img
       src="/brand/logo.svg"
-      alt={decorative ? "" : "Position Wise Advisory"}
+      alt={decorative ? "" : "Wise Track"}
       width={442}
       height={85}
       className={cn("h-7 w-auto", className)}
@@ -40,7 +40,7 @@ export function BrandLogoLink({
   return (
     <Link
       href={href}
-      aria-label="Position Wise Advisory home"
+      aria-label="Wise Track home"
       className={cn("flex items-center", className)}
     >
       <BrandLogo className={logoClassName} priority={priority} />

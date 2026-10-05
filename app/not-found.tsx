@@ -7,8 +7,7 @@ import { buildShareMetadata } from "@/lib/seo"
 export const metadata: Metadata = {
   ...buildShareMetadata({
     title: "Page not found",
-    description:
-      "This page does not exist. Return home, explore advisory, or start tracking for free.",
+    description: "This page does not exist. Return home or start tracking for free.",
     path: "/",
   }),
   robots: { index: false, follow: false },
@@ -25,15 +24,11 @@ export default function NotFound() {
         This page is not on the map.
       </h1>
       <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
-        The link may be outdated, or the page may have moved. Start from home or
-        pick the path that fits today.
+        The link may be outdated, or the page may have moved. Start from home.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Button asChild size="lg">
           <Link href="/">Go home</Link>
-        </Button>
-        <Button asChild size="lg" variant="outline">
-          <Link href="/advisory">Explore advisory</Link>
         </Button>
         <Button asChild size="lg" variant="outline">
           <Link href="/sign-up">Start tracking free</Link>

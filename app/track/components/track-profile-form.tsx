@@ -3,8 +3,8 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState, useTransition } from "react"
-import { Check, ChevronLeft } from "lucide-react"
+import { useEffect, useState, useTransition } from "react"
+import { Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { updateTrackPreferences } from "@track/app/actions"
 import LoadingSubmitButton from "@/components/ui/loading-submit-button"
@@ -14,8 +14,11 @@ import {
   TrackCapsuleCircle,
   TrackCapsuleHero,
 } from "@track/components/track-capsule-hero"
+import { CategoriesManagerDialog } from "@track/components/categories-manager"
+import { TrackThemeDialog } from "@track/components/track-theme-dialog"
+import { useTrackTheme } from "@track/components/track-theme"
 import { formatMoney } from "@track/lib/month"
-import type { TrackProfile } from "@track/lib/types"
+import type { ExpenseCategory, TrackProfile } from "@track/lib/types"
 import { cn } from "@/lib/utils"
 
 type TrackProfileFormProps = {
@@ -27,6 +30,7 @@ type TrackProfileFormProps = {
   totalExpense: number
   currency: string
   trackingSince: string
+  categories: ExpenseCategory[]
 }
 
 function formatTrackingSince(iso: string) {
@@ -44,11 +48,16 @@ export function TrackProfileForm({
   totalExpense,
   currency,
   trackingSince,
+  categories,
 }: TrackProfileFormProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
+  const { mode, preset } = useTrackTheme()
   const [isEditingPreferences, setIsEditingPreferences] = useState(false)
   const [preferencesFormKey, setPreferencesFormKey] = useState(0)
+  const [themeOpen, setThemeOpen] = useState(false)
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
+  const [themeLabelReady, setThemeLabelReady] = useState(false)
   const initials = (displayName || email || "M").charAt(0).toUpperCase()
   const sinceLabel = formatTrackingSince(trackingSince)
   const net = monthlyIncome - totalExpense
@@ -58,6 +67,25 @@ export function TrackProfileForm({
       : totalExpense > 0
         ? 1
         : 0
+  const themeValue = themeLabelReady
+    ? `${mode === "dark" ? "Dark" : "Light"} · ${preset.label}`
+    : "Customize"
+  const categoriesValue =
+    categories.length === 1 ? "1 group" : `${categories.length} groups`
+
+  useEffect(() => {
+    setThemeLabelReady(true)
+
+    function syncHash() {
+      const hash = window.location.hash
+      if (hash === "#categories") setCategoriesOpen(true)
+      if (hash === "#theme") setThemeOpen(true)
+    }
+
+    syncHash()
+    window.addEventListener("hashchange", syncHash)
+    return () => window.removeEventListener("hashchange", syncHash)
+  }, [])
 
   async function handleSubmit(formData: FormData) {
     const result = await updateTrackPreferences(formData)
@@ -166,13 +194,25 @@ export function TrackProfileForm({
               })}
             </div>
           </li>
+          <ProfileActionRow
+            id="theme"
+            label="Theme"
+            value={themeValue}
+            onClick={() => setThemeOpen(true)}
+          />
+          <ProfileActionRow
+            id="categories"
+            label="Categories"
+            value={categoriesValue}
+            onClick={() => setCategoriesOpen(true)}
+          />
         </ul>
       </section>
 
       <div className="px-2">
         <div className="flex items-center justify-between gap-3 border-t border-border/70 pt-8">
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Preferences
+            Configuration
           </p>
           {isEditingPreferences ? (
             <Button
@@ -259,6 +299,56 @@ export function TrackProfileForm({
           </div>
         )}
       </div>
+
+      <TrackThemeDialog
+        open={themeOpen}
+        onOpenChange={(next) => {
+          setThemeOpen(next)
+          if (!next && window.location.hash === "#theme") {
+            window.history.replaceState(null, "", window.location.pathname)
+          }
+        }}
+      />
+      <CategoriesManagerDialog
+        categories={categories}
+        open={categoriesOpen}
+        onOpenChange={(next) => {
+          setCategoriesOpen(next)
+          if (!next && window.location.hash === "#categories") {
+            window.history.replaceState(null, "", window.location.pathname)
+          }
+        }}
+      />
     </div>
+  )
+}
+
+function ProfileActionRow({
+  id,
+  label,
+  value,
+  onClick,
+}: {
+  id?: string
+  label: string
+  value: string
+  onClick: () => void
+}) {
+  return (
+    <li id={id} className="scroll-mt-8">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center justify-between gap-4 py-4 text-left"
+      >
+        <span className="text-sm text-foreground">{label}</span>
+        <span className="flex min-w-0 items-center gap-1">
+          <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+            {value}
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        </span>
+      </button>
+    </li>
   )
 }

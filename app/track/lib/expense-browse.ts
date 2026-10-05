@@ -79,6 +79,31 @@ export function expensesOnDate(
   return expenses.filter((expense) => expenseDateKey(expense) === dateKey)
 }
 
+export type CountedSpendSlice = {
+  id: string
+  name: string
+  total: number
+  count: number
+}
+
+export function spendGrouped(
+  expenses: ExpenseWithCategory[],
+  keyOf: (expense: ExpenseWithCategory) => { id: string; name: string }
+): CountedSpendSlice[] {
+  const map = new Map<string, CountedSpendSlice>()
+  for (const expense of expenses) {
+    const { id, name } = keyOf(expense)
+    const existing = map.get(id)
+    if (existing) {
+      existing.total += expense.amount
+      existing.count += 1
+    } else {
+      map.set(id, { id, name, total: expense.amount, count: 1 })
+    }
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total)
+}
+
 export type CategorySpendSlice = {
   categoryId: string
   name: string

@@ -5,7 +5,7 @@ import { buildShareMetadata } from "@/lib/seo"
 export const metadata: Metadata = buildShareMetadata({
   title: "Create account",
   description:
-    "Create a Position Wise Advisory account to start tracking for free or request personalized investment guidance.",
+    "Create a Wise Track account and start tracking for free.",
   path: "/sign-up",
 })
 

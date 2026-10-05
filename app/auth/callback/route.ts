@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const next = requestUrl.searchParams.get("next")
   const intent = request.cookies.get(AUTH_INTENT_COOKIE)?.value ?? null
 
-  let response = NextResponse.redirect(new URL("/dashboard", request.url))
+  let response = NextResponse.redirect(new URL("/app", request.url))
   const supabase = createSupabaseRouteHandlerClient(request, response)
 
   if (code) {

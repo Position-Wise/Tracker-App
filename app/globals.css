@@ -44,6 +44,8 @@
   --destructive: oklch(0.6 0.22 27);
 
   --surface-rib-period: 1.4rem;
+  --surface-wash-repeat: no-repeat, no-repeat, repeat;
+  --surface-wash-size: 100% 100%, 100% 100%, var(--surface-rib-period) 100%;
   --surface-rib:
     radial-gradient(120% 80% at 100% -8%, rgb(255 255 255 / 0.85) 0%, transparent 50%),
     linear-gradient(
@@ -77,6 +79,10 @@
     0 18px 40px -28px rgb(15 23 42 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.7);
   --surface-dialog-shadow:
     0 24px 60px -24px rgb(15 23 42 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.7);
+
+  --track-chart: var(--brand-navy);
+  --track-chart-muted: #9aa8bc;
+  --track-chart-heat: 42 64 100;
 }
 
 /* Dark mode: charcoal surfaces + navy #2A4064 accents */
@@ -141,6 +147,10 @@
     0 22px 44px -28px rgb(0 0 0 / 0.85), inset 0 1px 0 rgb(255 255 255 / 0.08);
   --surface-dialog-shadow:
     0 28px 64px -24px rgb(0 0 0 / 0.82), inset 0 1px 0 rgb(255 255 255 / 0.06);
+
+  --track-chart: #8ea2ff;
+  --track-chart-muted: #5b6577;
+  --track-chart-heat: 142 162 255;
 }
 
 @theme inline {
@@ -167,6 +177,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+@theme {
+  --breakpoint-3xl: 112.5rem;
 }
 
 /* Track layout panels — frosted slabs over the ribbed page wash */
@@ -206,8 +220,18 @@ body.track-app::before {
   pointer-events: none;
   background-color: var(--background);
   background-image: var(--surface-rib);
-  background-repeat: no-repeat, no-repeat, repeat;
-  background-size: 100% 100%, 100% 100%, var(--surface-rib-period) 100%;
+  background-repeat: var(--surface-wash-repeat);
+  background-size: var(--surface-wash-size);
+}
+
+/* Profile uses a solid page color under the selected wash */
+body.track-app.track-profile {
+  --background: #ffffff;
+  background-color: var(--background);
+}
+
+html.dark body.track-app.track-profile {
+  --background: var(--brand-charcoal);
 }
 
 body.track-app [data-slot="dialog-content"],

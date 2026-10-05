@@ -1,26 +1,22 @@
 import type { Metadata } from "next"
 import { getCompanyContact } from "@/lib/company"
-import { getSiteUrl, getTrackSiteUrl, toAbsoluteUrl } from "@/lib/site"
+import { getSiteUrl, toAbsoluteUrl } from "@/lib/site"
 
-export const SITE_NAME = "Position Wise Advisory"
-export const TRACK_NAME = "Wise Track"
-export const SITE_TAGLINE =
-  "See your money clearly. Grow it with advice that fits you."
+export const SITE_NAME = "Wise Track"
+export const TRACK_NAME = SITE_NAME
+export const SITE_TAGLINE = "Know where your money goes."
 
 export const SITE_DESCRIPTION =
-  "Personalized investment guidance when you want a professional in your corner, and a free expense tracker for the money that moves every day."
+  "A free expense tracker for everyday money — categories, accounts, and a clear month view."
 
-export const TRACK_DESCRIPTION =
-  "A free expense tracker for everyday money — categories, accounts, and a clear month view. Built by Position Wise Advisory."
+export const TRACK_DESCRIPTION = SITE_DESCRIPTION
 
 export const SITE_KEYWORDS = [
-  "Position Wise Advisory",
   "Wise Track",
-  "personalized investment advice",
   "expense tracker",
   "personal finance",
-  "market insights",
-  "personalized investment advice",
+  "money tracker",
+  "budget",
 ]
 
 export const noIndexRobots: Metadata["robots"] = {
@@ -148,21 +144,8 @@ export function getDefaultMetadata(): Metadata {
   }
 }
 
-export function getHomeShareMetadata(isTrack: boolean): Metadata {
-  if (isTrack) {
-    const title = `${TRACK_NAME} | Free expense tracker by ${SITE_NAME}`
-    return {
-      metadataBase: new URL(getTrackSiteUrl()),
-      ...buildShareMetadata({
-        title,
-        description: TRACK_DESCRIPTION,
-        origin: getTrackSiteUrl(),
-      }),
-      title: { absolute: title },
-    }
-  }
-
-  const title = `${SITE_NAME} | Personalized investing and a free tracker`
+export function getHomeShareMetadata(): Metadata {
+  const title = `${SITE_NAME} | Free expense tracker`
   return {
     ...buildShareMetadata({
       title,
@@ -174,7 +157,6 @@ export function getHomeShareMetadata(isTrack: boolean): Metadata {
 
 export function getOrganizationJsonLd() {
   const siteUrl = getSiteUrl()
-  const trackUrl = getTrackSiteUrl()
   const contact = getCompanyContact()
 
   return {
@@ -191,7 +173,7 @@ export function getOrganizationJsonLd() {
           width: 512,
           height: 512,
         },
-        description: SITE_DESCRIPTION,
+        description: TRACK_DESCRIPTION,
         email: contact.email,
         ...(contact.phone ? { telephone: contact.phone } : {}),
         address: {
@@ -225,9 +207,9 @@ export function getOrganizationJsonLd() {
       },
       {
         "@type": "SoftwareApplication",
-        "@id": `${trackUrl}/#app`,
+        "@id": `${siteUrl}/#app`,
         name: TRACK_NAME,
-        url: trackUrl,
+        url: siteUrl,
         applicationCategory: "FinanceApplication",
         operatingSystem: "Web",
         offers: {

@@ -31,21 +31,6 @@ export function getSiteUrl() {
   return `https://${domain}`
 }
 
-export function getTrackSiteUrl() {
-  const site = new URL(getSiteUrl())
-  const hostname = site.hostname
-  const port = site.port ? `:${site.port}` : ""
-
-  if (hostname === "localhost" || hostname.endsWith(".localhost")) {
-    return `${site.protocol}//track.localhost${port}`
-  }
-  if (hostname === "lvh.me" || hostname.endsWith(".lvh.me")) {
-    return `${site.protocol}//track.lvh.me${port}`
-  }
-
-  return `${site.protocol}//track.${hostname}${port}`
-}
-
 export function toAbsoluteUrl(path = "/", origin = getSiteUrl()) {
   const normalized = path.startsWith("/") ? path : `/${path}`
   return new URL(normalized, `${origin.replace(/\/$/, "")}/`).toString()
